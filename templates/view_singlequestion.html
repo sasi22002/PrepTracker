@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Question</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #f7f7f7;
+        }
+        .container {
+            margin-top: 50px;
+            max-width: 800px;
+            background-color: white;
+            padding: 30px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .question-section {
+            margin-bottom: 30px;
+        }
+        .question-text {
+            font-weight: bold;
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .answer-text {
+            color: #f0f0f0;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            background: #000000;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            border: 1px solid #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        .answer-text:hover {
+            border-color: #58a6ff;
+            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.2);
+        }
+        .meta-info {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .meta-item {
+            background-color: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">Question Details</h1>
+        
+        {% for q in question %}
+        <div class="question-section">
+            <div class="question-text">
+                <i class="fas fa-question-circle"></i> {{ q.question }}
+            </div>
+            <div class="answer-text">
+                <i class="fas fa-comment"></i> {{ q.answer }}
+            </div>
+            <div class="meta-info">
+                <div class="meta-item">
+                    <i class="fas fa-building"></i> {{ q.comapny_question__company_name }}
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-tag"></i> {{ q.question_type }}
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-calendar"></i> Interview ID: {{ q.interview_id }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="actions">
+            <a href="{{ url_for('add_question_web') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Questions
+            </a>
+            <a href="{{ url_for('edit_single_question', id=question[0].id) }}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Edit Question
+            </a>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
