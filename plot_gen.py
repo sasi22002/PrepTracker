@@ -4,6 +4,12 @@ from collections import defaultdict
 import io, base64
 import numpy as np
 from models import Interview
+from dbhelper import statistics_db
+
+# Set matplotlib style for better looking plots
+plt.style.use('seaborn-v0_8')
+plt.rcParams['figure.figsize'] = (10, 6)
+plt.rcParams['font.size'] = 10
 
 def get_consecutive_dates(start_date, end_date):
     """Generate consecutive dates between start_date and end_date"""
@@ -132,4 +138,145 @@ def mm():
 
     except Exception as e:
         print(f"Error: {e}")
+        return None
+
+def plot_status_pie_chart():
+    """Generate a pie chart showing interview status distribution with proper color coding"""
+    try:
+        stats = statistics_db.get_interview_statistics()
+        status_breakdown = stats.get('status_breakdown', {})
+        
+        if not status_breakdown:
+            return None
+        
+        # Define colors based on status categories
+        def get_status_color(status):
+            positive_statuses = ['Offered', 'Passed', 'Selected', 'Joined']
+            negative_statuses = ['Rejected', 'Failed', 'Withdrawn']
+            
+            if status in positive_statuses:
+                return '#28a745'  # Green
+            elif status in negative_statuses:
+                return '#dc3545'  # Red
+            else:
+                return '#ffc107'  # Yellow/Orange for neutral
+        
+        # Prepare data with colors
+        labels = list(status_breakdown.keys())
+        sizes = list(status_breakdown.values())
+        colors = [get_status_color(status) for status in labels]
+        
+        # Create pie chart with better styling
+        fig, ax = plt.subplots(figsize=(10, 8))
+        wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors, 
+                                          autopct='%1.1f%%', startangle=90, 
+                                          textprops={'fontsize': 10, 'fontweight': '500'},
+                                          wedgeprops={'edgecolor': 'white', 'linewidth': 2})
+        
+        # Equal aspect ratio ensures that pie is drawn as a circle
+        ax.axis('equal')
+        plt.title('Interview Status Distribution (Normalized)', fontsize=16, fontweight='bold', pad=20)
+        
+        # Add legend
+        ax.legend(wedges, labels, title="Status", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+        
+        # Save plot to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', dpi=120)
+        plt.close()
+        
+        buf.seek(0)
+        image_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        return image_base64
+        
+    except Exception as e:
+        print(f"Error in pie chart: {e}")
+        return None
+
+def plot_monthly_trend():
+    """Generate a line chart showing interview trends over months"""
+    try:
+        stats = statistics_db.get_interview_statistics()
+        monthly_breakdown = stats.get('monthly_breakdown', {})
+        
+        if not monthly_breakdown:
+            return None
+        
+        # Prepare data
+        months = sorted(monthly_breakdown.keys())
+        counts = [monthly_breakdown[month] for month in months]
+        
+        # Create line chart
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(months, counts, marker='o', linewidth=3, markersize=8, 
+                color='#667eea', markerfacecolor='#764ba2')
+        
+        ax.set_title('Interview Trend Over Time', fontsize=14, fontweight='bold', pad=20)
+        ax.set_xlabel('Month', fontsize=12)
+        ax.set_ylabel('Number of Interviews', fontsize=12)
+        ax.grid(True, alpha=0.3)
+        
+        # Rotate x-axis labels for better readability
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        
+        # Save plot to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+        plt.close()
+        
+        buf.seek(0)
+        image_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        return image_base64
+        
+    except Exception as e:
+        print(f"Error in monthly trend chart: {e}")
+        return None
+
+def plot_company_distribution():
+    """Generate a bar chart showing interview distribution by company"""
+    try:
+        stats = statistics_db.get_interview_statistics()
+        company_breakdown = stats.get('company_breakdown', {})
+        
+        if not company_breakdown:
+            return None
+        
+        # Take top 10 companies
+        sorted_companies = sorted(company_breakdown.items(), key=lambda x: x[1], reverse=True)[:10]
+        
+        if not sorted_companies:
+            return None
+        
+        # Prepare data
+        companies = [item[0] for item in sorted_companies]
+        counts = [item[1] for item in sorted_companies]
+        
+        # Create horizontal bar chart
+        fig, ax = plt.subplots(figsize=(10, 8))
+        bars = ax.barh(companies, counts, color='#667eea')
+        
+        # Add value labels on bars
+        for i, (bar, count) in enumerate(zip(bars, counts)):
+            ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, 
+                   str(count), va='center', fontsize=10)
+        
+        ax.set_title('Interview Distribution by Company', fontsize=14, fontweight='bold', pad=20)
+        ax.set_xlabel('Number of Interviews', fontsize=12)
+        ax.set_ylabel('Company', fontsize=12)
+        ax.grid(True, alpha=0.3, axis='x')
+        
+        plt.tight_layout()
+        
+        # Save plot to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+        plt.close()
+        
+        buf.seek(0)
+        image_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        return image_base64
+        
+    except Exception as e:
+        print(f"Error in company distribution chart: {e}")
         return None

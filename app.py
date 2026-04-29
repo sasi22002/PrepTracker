@@ -2,19 +2,44 @@ from flask import Flask, render_template, request, jsonify
 from datetime import datetime
 import json
 import os
-from dbhelper import interview_db, company_db, question_db, study_db, status_state_db
+from dbhelper import interview_db, company_db, question_db, study_db, status_state_db, statistics_db
 
 app = Flask(__name__)
 
-from plot_gen import plot_interview_status
+from plot_gen import plot_interview_status, plot_status_pie_chart, plot_monthly_trend, plot_company_distribution
 
 # Routes
 @app.route('/')
 def home():
     interviews = interview_db.get_all_interviews()
     plot = plot_interview_status()
+    stats = statistics_db.get_interview_statistics()
     
-    return render_template('home.html', interviews=interviews, plot_url=f'data:image/png;base64,{plot}')
+    return render_template('home.html', interviews=interviews, plot_url=f'data:image/png;base64,{plot}', stats=stats)
+
+@app.route('/dashboard')
+def dashboard():
+    # Get comprehensive statistics
+    interview_stats = statistics_db.get_interview_statistics()
+    study_stats = statistics_db.get_study_materials_statistics()
+    question_stats = statistics_db.get_questions_statistics()
+    
+    # Generate charts
+    status_pie = plot_status_pie_chart()
+    monthly_trend = plot_monthly_trend()
+    company_dist = plot_company_distribution()
+    
+    charts = {
+        'status_pie': f'data:image/png;base64,{status_pie}' if status_pie else None,
+        'monthly_trend': f'data:image/png;base64,{monthly_trend}' if monthly_trend else None,
+        'company_distribution': f'data:image/png;base64,{company_dist}' if company_dist else None
+    }
+    
+    return render_template('dashboard.html', 
+                         interview_stats=interview_stats,
+                         study_stats=study_stats,
+                         question_stats=question_stats,
+                         charts=charts)
 
 @app.route('/show-questions/')
 def show_questions():
@@ -229,6 +254,58 @@ def delete_interview(id):
             return jsonify({'status': 'Failed', 'message': 'Interview not found'}), 400
     except Exception as e:
         return jsonify({'status': 'error', 'message': 'error'}), 500
+
+@app.route('/api/interviews/category/<category>')
+def get_interviews_by_category(category):
+    """Get interviews filtered by status category (positive, negative, neutral)"""
+    try:
+        if category not in ['positive', 'negative', 'neutral', 'recent']:
+            return jsonify({'status': 'error', 'message': 'Invalid category'}), 400
+        
+        if category == 'recent':
+            interviews = statistics_db.get_recent_interviews(30)
+        else:
+            interviews = statistics_db.get_interviews_by_category(category)
+        
+        return jsonify({
+            'status': 'success',
+            'data': interviews,
+            'count': len(interviews),
+            'category': category
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/interviews/status/<status>')
+def get_interviews_by_status(status):
+    """Get interviews filtered by specific status"""
+    try:
+        interviews = statistics_db.get_interviews_by_status(status)
+        
+        return jsonify({
+            'status': 'success',
+            'data': interviews,
+            'count': len(interviews),
+            'status_filter': status
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/interviews/recent')
+def get_recent_interviews():
+    """Get recent interviews"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        interviews = statistics_db.get_recent_interviews(days)
+        
+        return jsonify({
+            'status': 'success',
+            'data': interviews,
+            'count': len(interviews),
+            'days': days
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
