@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Questions</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            margin-top: 30px;
+            max-width: 1400px;
+            padding: 0 20px;
+        }
+        .header-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        .header-section h1 {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .question-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border-left: 5px solid #667eea;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .question-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+        .question-text {
+            font-weight: 700;
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        .answer-text {
+            color: #f0f0f0;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            background: #000000;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            border: 1px solid #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        .answer-text:hover {
+            border-color: #58a6ff;
+            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.2);
+        }
+        .meta-info {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .meta-item {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+            border: 1px solid #dee2e6;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .actions .btn {
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        .actions .btn:hover {
+            transform: scale(1.05);
+        }
+        .no-questions {
+            text-align: center;
+            color: #666;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 60px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+        }
+        .add-question-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        .add-question-section h3 {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 25px;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            padding: 12px 15px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            transform: translateY(-2px);
+        }
+        .form-control.select-dropdown {
+            background-color: white;
+            color: #333;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            line-height: 1.5;
+        }
+        .form-control.select-dropdown:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .form-control.select-dropdown option {
+            color: #333;
+            background-color: white;
+            padding: 12px 15px;
+            font-weight: 500;
+            font-size: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .form-control.select-dropdown option:hover {
+            background-color: #667eea;
+            color: white;
+        }
+        .form-control.select-dropdown option:checked {
+            background-color: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        .form-group label i {
+            margin-right: 8px;
+            color: #667eea;
+        }
+        /* Ensure dropdown opens properly */
+        select.form-control.select-dropdown {
+            -webkit-appearance: menulist;
+            -moz-appearance: menulist;
+            appearance: menulist;
+            height: 50px;
+        }
+        .form-control.select-dropdown:hover {
+            border-color: #667eea;
+        }
+        .answer-terminal {
+            color: #f0f0f0;
+            background: #000000;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            min-height: 120px;
+            transition: all 0.3s ease;
+        }
+        .answer-terminal:focus {
+            border-color: #58a6ff;
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.3);
+            outline: none;
+        }
+        .answer-terminal::placeholder {
+            color: #888;
+            font-style: italic;
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #5a6268, #495057);
+            transform: translateY(-2px);
+        }
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-info:hover {
+            background: linear-gradient(135deg, #138496, #117a8b);
+            transform: translateY(-2px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8, #6a4190);
+            transform: translateY(-2px);
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            border: none;
+            color: white;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            border: none;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-section">
+            <h1 class="mb-3">Interview Questions</h1>
+            <p class="text-muted">Manage questions and answers for your interviews</p>
+            <div class="mt-3">
+                <a href="{{ url_for('home') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+                <a href="{{ url_for('show_questions') }}" class="btn btn-info ml-2">
+                    <i class="fas fa-book"></i> Study Materials
+                </a>
+            </div>
+        </div>
+
+        <div class="add-question-section">
+            <h3><i class="fas fa-plus-circle"></i> Add New Question</h3>
+            <form id="addQuestionForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="question"><i class="fas fa-question-circle"></i> Question</label>
+                            <textarea class="form-control" id="question" rows="3" required placeholder="Enter the interview question..."></textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="answer"><i class="fas fa-comment"></i> Answer</label>
+                            <textarea class="form-control answer-terminal" id="answer" rows="4" required placeholder="Enter your answer here... Use code formatting for better readability"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="interview"><i class="fas fa-calendar-alt"></i> Interview</label>
+                            <select class="form-control select-dropdown" id="interview" required>
+                                <option value="">Select Interview</option>
+                                {% for interview in interviews %}
+                                <option value="{{ interview.sno }}">{{ interview.company_name }} - {{ interview.date }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="company"><i class="fas fa-building"></i> Company</label>
+                            <select class="form-control select-dropdown" id="company" required>
+                                <option value="">Select Company</option>
+                                {% for company in companies %}
+                                <option value="{{ company.id }}">{{ company.company_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="questionType"><i class="fas fa-tag"></i> Question Type</label>
+                            <select class="form-control select-dropdown" id="questionType" required>
+                                <option value="">Select Type</option>
+                                <option value="Python">Python</option>
+                                <option value="Django">Django</option>
+                                <option value="Cloud">Cloud</option>
+                                <option value="General">General</option>
+                                <option value="Others">Others</option>
+                                <option value="Database">Database</option>
+                                <option value="Pandas">Pandas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus"></i> Add Question
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% if questions %}
+            {% for question in questions %}
+            <div class="question-card">
+                <div class="question-text">
+                    <i class="fas fa-question-circle"></i> {{ question.question }}
+                </div>
+                <div class="answer-text">
+                    <i class="fas fa-comment"></i> {{ question.answer }}
+                </div>
+                <div class="meta-info">
+                    <div class="meta-item">
+                        <i class="fas fa-building"></i> {{ question.company_name }}
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-calendar"></i> {{ question.date }}
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-tag"></i> {{ question.question_type }}
+                    </div>
+                </div>
+                <div class="actions">
+                    <a href="{{ url_for('view_single_question', id=question.id) }}" class="btn btn-sm btn-info">
+                        <i class="fas fa-eye"></i> View
+                    </a>
+                    <a href="{{ url_for('edit_single_question', id=question.id) }}" class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <button class="btn btn-sm btn-danger delete-btn" data-id="{{ question.id }}">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="no-questions">
+            <i class="fas fa-inbox fa-4x mb-3"></i>
+            <h3>No Questions Yet</h3>
+            <p>Add your first interview question using the form above.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        $('#addQuestionForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                question: $('#question').val(),
+                answer: $('#answer').val(),
+                interview: $('#interview').val(),
+                company: $('#company').val(),
+                question_type: $('#questionType').val()
+            };
+
+            fetch('/add_question', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Question added successfully!');
+                    $('#addQuestionForm')[0].reset();
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while adding the question.');
+            });
+        });
+
+        function deleteQuestion(id) {
+            if (confirm('Are you sure you want to delete this question?')) {
+                fetch('/add_question', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Question deleted successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the question.');
+                });
+            }
+        }
+
+        // Event listeners for delete buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    deleteQuestion(id);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

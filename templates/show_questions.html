@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Materials</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            margin-top: 20px;
+            max-width: 800px;
+            padding: 0 15px;
+        }
+        .header-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        .header-section h1 {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+        }
+        .question-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 3px solid #667eea;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        .question-text {
+            font-weight: 700;
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+        .answer-text {
+            color: #f0f0f0;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            background: #000000;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            border: 1px solid #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        .answer-text:hover {
+            border-color: #58a6ff;
+            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.2);
+        }
+        .category-badge {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .actions .btn {
+            border-radius: 15px;
+            padding: 4px 10px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border: none;
+            font-size: 12px;
+        }
+        .actions .btn:hover {
+            transform: scale(1.05);
+        }
+        .no-questions {
+            text-align: center;
+            color: #666;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .add-question-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        .add-question-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            background: linear-gradient(135deg, #20c997, #28a745);
+        }
+        .modal-body textarea {
+            min-height: 120px;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            padding: 12px;
+        }
+        .modal-body textarea:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .modal-body textarea.answer-terminal {
+            color: #f0f0f0;
+            background: #000000;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+        .modal-body textarea.answer-terminal:focus {
+            border-color: #58a6ff;
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.3);
+            outline: none;
+        }
+        .modal-body textarea.answer-terminal::placeholder {
+            color: #888;
+            font-style: italic;
+        }
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+        .modal-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            border: none;
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #5a6268, #495057);
+            transform: translateY(-2px);
+        }
+        .search-section {
+            margin-bottom: 20px;
+        }
+        .search-container {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-section">
+            <h1 class="mb-3">Study Materials</h1>
+            <p class="text-muted">Prepare for your interviews with these questions and answers</p>
+            <div class="search-section mt-3">
+                <div class="search-container">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search questions or answers...">
+                </div>
+            </div>
+            <div class="mt-3">
+                <a href="{{ url_for('home') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+            </div>
+        </div>
+
+        {% if questions %}
+            {% for question in questions %}
+            <div class="question-card" id="question-{{ question.id }}">
+                <div class="question-text">
+                    {{ question.question }}
+                </div>
+                <div class="answer-text">
+                    {{ question.answer }}
+                </div>
+                <div>
+                    <span class="category-badge">{{ question.belongs_to }}</span>
+                    {% if question.repeat_count > 0 %}
+                    <span class="badge badge-info ml-2">Repeated {{ question.repeat_count }} times</span>
+                    {% endif %}
+                </div>
+                <div class="actions">
+                    <button class="btn btn-sm edit-btn" 
+                            data-id="{{ question.id }}"
+                            data-question="{{ question.question|e|replace('"', '&quot;') }}"
+                            data-answer="{{ question.answer|e|replace('"', '&quot;') }}"
+                            data-category="{{ question.belongs_to|e|replace('"', '&quot;') }}">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-sm delete-btn" data-id="{{ question.id }}">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                    <button class="btn btn-sm repeat-btn" data-id="{{ question.id }}">
+                        <i class="fas fa-redo"></i> Mark as Repeated
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="no-questions">
+            <i class="fas fa-inbox fa-4x mb-3"></i>
+            <h3>No Study Materials Yet</h3>
+            <p>Start building your interview preparation materials by adding questions and answers.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Floating Add Button -->
+    <button class="add-question-btn" data-toggle="modal" data-target="#addQuestionModal">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Add Question Modal -->
+    <div class="modal fade" id="addQuestionModal" tabindex="-1" aria-labelledby="addQuestionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addQuestionModalLabel">Add Study Question</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="addQuestionForm">
+                        <div class="form-group">
+                            <label for="newQuestion">Question</label>
+                            <textarea class="form-control" id="newQuestion" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="newAnswer">Answer</label>
+                            <textarea class="form-control answer-terminal" id="newAnswer" rows="5" required placeholder="Enter your answer here... Use code formatting for better readability"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="newCategory">Category</label>
+                            <select class="form-control" id="newCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="Python">Python</option>
+                                <option value="Django">Django</option>
+                                <option value="Cloud">Cloud</option>
+                                <option value="General">General</option>
+                                <option value="Others">Others</option>
+                                <option value="Database">Database</option>
+                                <option value="Pandas">Pandas</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="addQuestion()">Add Question</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Question Modal -->
+    <div class="modal fade" id="editQuestionModal" tabindex="-1" aria-labelledby="editQuestionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editQuestionModalLabel">Edit Study Question</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="editQuestionForm">
+                        <input type="hidden" id="editQuestionId">
+                        <div class="form-group">
+                            <label for="editQuestion">Question</label>
+                            <textarea class="form-control" id="editQuestion" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="editAnswer">Answer</label>
+                            <textarea class="form-control answer-terminal" id="editAnswer" rows="5" required placeholder="Enter your answer here... Use code formatting for better readability"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCategory">Category</label>
+                            <select class="form-control" id="editCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="Python">Python</option>
+                                <option value="Django">Django</option>
+                                <option value="Cloud">Cloud</option>
+                                <option value="General">General</option>
+                                <option value="Others">Others</option>
+                                <option value="Database">Database</option>
+                                <option value="Pandas">Pandas</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="updateQuestion()">Update Question</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        function addQuestion() {
+            const question = $('#newQuestion').val();
+            const answer = $('#newAnswer').val();
+            const category = $('#newCategory').val();
+
+            if (!question || !answer || !category) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            fetch('/show-questions/update-study_questions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    question: question,
+                    answer: answer,
+                    type: category
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === true) {
+                    alert('Question added successfully!');
+                    $('#addQuestionModal').modal('hide');
+                    $('#addQuestionForm')[0].reset();
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while adding the question.');
+            });
+        }
+
+        function editQuestionWithDataset(button) {
+            const id = button.dataset.id;
+            const question = button.dataset.question;
+            const answer = button.dataset.answer;
+            const category = button.dataset.category;
+            editQuestion(id, question, answer, category);
+        }
+
+        function editQuestion(id, question, answer, category) {
+            $('#editQuestionId').val(id);
+            $('#editQuestion').val(question);
+            $('#editAnswer').val(answer);
+            $('#editCategory').val(category);
+            $('#editQuestionModal').modal('show');
+        }
+
+        function updateQuestion() {
+            const id = $('#editQuestionId').val();
+            const answer = $('#editAnswer').val();
+
+            if (!answer) {
+                alert('Please provide an answer');
+                return;
+            }
+
+            fetch('/show-questions/update-study_questions', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: id,
+                    answer: answer
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === true) {
+                    alert('Question updated successfully!');
+                    $('#editQuestionModal').modal('hide');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the question.');
+            });
+        }
+
+        function deleteQuestion(id) {
+            if (confirm('Are you sure you want to delete this question?')) {
+                fetch('/show-questions/update-study_questions', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === true) {
+                        alert('Question deleted successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the question.');
+                });
+            }
+        }
+
+        function markAsRepeated(id) {
+            // This would require an additional endpoint to increment repeat count
+            alert('Feature to mark as repeated would need additional backend implementation');
+        }
+
+        // Event listeners for buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Edit buttons
+            document.querySelectorAll('.edit-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    const question = this.dataset.question;
+                    const answer = this.dataset.answer;
+                    const category = this.dataset.category;
+                    editQuestion(id, question, answer, category);
+                });
+            });
+
+            // Delete buttons
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    deleteQuestion(id);
+                });
+            });
+
+            // Repeat buttons
+            document.querySelectorAll('.repeat-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    markAsRepeated(id);
+                });
+            });
+
+            // Search functionality
+            const searchInput = document.getElementById('searchInput');
+
+            searchInput.addEventListener('input', function() {
+                const query = this.value.toLowerCase().trim();
+                
+                if (query.length === 0) {
+                    // Show all questions
+                    document.querySelectorAll('.question-card').forEach(card => {
+                        card.style.display = 'block';
+                    });
+                    return;
+                }
+
+                // Filter questions
+                document.querySelectorAll('.question-card').forEach(card => {
+                    const questionText = card.querySelector('.question-text').textContent.toLowerCase();
+                    const answerText = card.querySelector('.answer-text').textContent.toLowerCase();
+                    const categoryText = card.querySelector('.category-badge').textContent.toLowerCase();
+                    
+                    if (questionText.includes(query) || answerText.includes(query) || categoryText.includes(query)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
