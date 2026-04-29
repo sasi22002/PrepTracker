@@ -57,15 +57,15 @@
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
+            gap: 18px;
+            margin-bottom: 30px;
         }
         .stat-card {
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 25px;
+            border-radius: 15px;
+            padding: 18px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             backdrop-filter: blur(10px);
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -90,22 +90,22 @@
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
         }
         .stat-card .stat-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
             background: linear-gradient(135deg, #667eea, #764ba2);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         .stat-card .stat-number {
-            font-size: 2.8rem;
+            font-size: 2.2rem;
             font-weight: 700;
             color: #333;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             line-height: 1;
         }
         .stat-card .stat-label {
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             color: #666;
             font-weight: 500;
             text-transform: uppercase;
@@ -474,26 +474,65 @@
 
         <!-- Charts Section -->
         <div class="charts-grid fade-in">
-            {% if charts.status_pie %}
             <div class="chart-container">
                 <h3><i class="fas fa-chart-pie"></i> Interview Status Distribution</h3>
-                <img src="{{ charts.status_pie }}" alt="Status Distribution">
+                <div id="status-pie-container">
+                    {% if charts.status_pie %}
+                    <img src="{{ charts.status_pie }}" alt="Status Distribution">
+                    {% else %}
+                    <div class="graph-placeholder">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                            <p class="mt-2">Generating chart...</p>
+                        </div>
+                        <div class="graph-error" style="display: none;">
+                            <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Chart will appear here shortly</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            {% endif %}
             
-            {% if charts.monthly_trend %}
             <div class="chart-container">
                 <h3><i class="fas fa-chart-line"></i> Interview Trends Over Time</h3>
-                <img src="{{ charts.monthly_trend }}" alt="Monthly Trend">
+                <div id="monthly-trend-container">
+                    {% if charts.monthly_trend %}
+                    <img src="{{ charts.monthly_trend }}" alt="Monthly Trend">
+                    {% else %}
+                    <div class="graph-placeholder">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                            <p class="mt-2">Generating chart...</p>
+                        </div>
+                        <div class="graph-error" style="display: none;">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Chart will appear here shortly</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            {% endif %}
             
-            {% if charts.company_distribution %}
             <div class="chart-container">
                 <h3><i class="fas fa-chart-bar"></i> Top Companies</h3>
-                <img src="{{ charts.company_distribution }}" alt="Company Distribution">
+                <div id="company-distribution-container">
+                    {% if charts.company_distribution %}
+                    <img src="{{ charts.company_distribution }}" alt="Company Distribution">
+                    {% else %}
+                    <div class="graph-placeholder">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                            <p class="mt-2">Generating chart...</p>
+                        </div>
+                        <div class="graph-error" style="display: none;">
+                            <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Chart will appear here shortly</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            {% endif %}
         </div>
 
         <!-- Detailed Statistics -->
@@ -781,6 +820,69 @@
             return category;
         }
         
+        // Function to load dashboard graphs
+        function loadDashboardGraphs() {
+            const graphs = [
+                { type: 'status_pie', containerId: 'status-pie-container' },
+                { type: 'monthly_trend', containerId: 'monthly-trend-container' },
+                { type: 'company_distribution', containerId: 'company-distribution-container' }
+            ];
+            
+            graphs.forEach(graph => {
+                const container = document.getElementById(graph.containerId);
+                if (container && !container.querySelector('img')) {
+                    pollForGraph(graph.type, container);
+                }
+            });
+        }
+        
+        // Function to poll for graph availability (reused from home page)
+        function pollForGraph(graphType, container, attempts = 0) {
+            const maxAttempts = 30; // 30 seconds max wait time
+            
+            if (attempts >= maxAttempts) {
+                // Show error state after max attempts
+                const spinner = container.querySelector('.loading-spinner');
+                const error = container.querySelector('.graph-error');
+                if (spinner) spinner.style.display = 'none';
+                if (error) error.style.display = 'block';
+                return;
+            }
+            
+            fetch(`/api/graph/status/${graphType}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ready') {
+                        // Graph is ready, display it
+                        container.innerHTML = `<img src="${data.data}" alt="${graphType}" class="img-fluid">`;
+                    } else if (data.status === 'generating') {
+                        // Still generating, poll again in 1 second
+                        setTimeout(() => pollForGraph(graphType, container, attempts + 1), 1000);
+                    } else {
+                        // Not started, trigger generation
+                        fetch(`/api/graph/${graphType}`)
+                            .then(() => {
+                                // Start polling after triggering generation
+                                setTimeout(() => pollForGraph(graphType, container, attempts + 1), 1000);
+                            })
+                            .catch(error => {
+                                console.error('Error triggering graph generation:', error);
+                                const spinner = container.querySelector('.loading-spinner');
+                                const error = container.querySelector('.graph-error');
+                                if (spinner) spinner.style.display = 'none';
+                                if (error) error.style.display = 'block';
+                            });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking graph status:', error);
+                    const spinner = container.querySelector('.loading-spinner');
+                    const error = container.querySelector('.graph-error');
+                    if (spinner) spinner.style.display = 'none';
+                    if (error) error.style.display = 'block';
+                });
+        }
+        
         // Add fade-in animation to elements as they come into view
         document.addEventListener('DOMContentLoaded', function() {
             const observerOptions = {
@@ -829,6 +931,9 @@
                     }
                 });
             });
+            
+            // Load dashboard graphs after page loads
+            loadDashboardGraphs();
         });
     </script>
 </body>

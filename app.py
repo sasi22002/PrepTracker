@@ -7,27 +7,37 @@ from dbhelper import interview_db, company_db, question_db, study_db, status_sta
 app = Flask(__name__)
 
 from plot_gen import plot_interview_status, plot_status_pie_chart, plot_monthly_trend, plot_company_distribution
+from graph_cache import graph_cache, background_generator
+from coding_db import coding_db
 
 # Routes
 @app.route('/')
 def home():
+    # Load statistics immediately (fast operation)
     interviews = interview_db.get_all_interviews()
-    plot = plot_interview_status()
     stats = statistics_db.get_interview_statistics()
     
-    return render_template('home.html', interviews=interviews, plot_url=f'data:image/png;base64,{plot}', stats=stats)
+    # Try to get cached plot, but don't block if not available
+    plot = graph_cache.get_cached_graph('interview_status')
+    plot_url = f'data:image/png;base64,{plot}' if plot else None
+    
+    # Start background generation if plot is not cached
+    if not plot:
+        background_generator.generate_graph_async('interview_status', plot_interview_status)
+    
+    return render_template('home.html', interviews=interviews, plot_url=plot_url, stats=stats)
 
 @app.route('/dashboard')
 def dashboard():
-    # Get comprehensive statistics
+    # Load statistics immediately (fast operation)
     interview_stats = statistics_db.get_interview_statistics()
     study_stats = statistics_db.get_study_materials_statistics()
     question_stats = statistics_db.get_questions_statistics()
     
-    # Generate charts
-    status_pie = plot_status_pie_chart()
-    monthly_trend = plot_monthly_trend()
-    company_dist = plot_company_distribution()
+    # Try to get cached charts, but don't block if not available
+    status_pie = graph_cache.get_cached_graph('status_pie')
+    monthly_trend = graph_cache.get_cached_graph('monthly_trend')
+    company_dist = graph_cache.get_cached_graph('company_distribution')
     
     charts = {
         'status_pie': f'data:image/png;base64,{status_pie}' if status_pie else None,
@@ -35,16 +45,24 @@ def dashboard():
         'company_distribution': f'data:image/png;base64,{company_dist}' if company_dist else None
     }
     
+    # Start background generation for any missing charts
+    if not status_pie:
+        background_generator.generate_graph_async('status_pie', plot_status_pie_chart)
+    if not monthly_trend:
+        background_generator.generate_graph_async('monthly_trend', plot_monthly_trend)
+    if not company_dist:
+        background_generator.generate_graph_async('company_distribution', plot_company_distribution)
+    
     return render_template('dashboard.html', 
-                         interview_stats=interview_stats,
-                         study_stats=study_stats,
-                         question_stats=question_stats,
+                         interview_stats=interview_stats, 
+                         study_stats=study_stats, 
+                         question_stats=question_stats, 
                          charts=charts)
 
 @app.route('/show-questions/')
 def show_questions():
     questions = study_db.get_all_study_materials()
-    return render_template('show_questions.html', questions=questions)
+    return render_template('show_questions_final.html', questions=questions)
 
 @app.route('/show-questions/update-study_questions', methods=['PUT', 'POST', 'DELETE'])
 def update_study_questions():
@@ -69,10 +87,14 @@ def update_study_questions():
             if study_db.study_material_exists(data['question']):
                 return jsonify({'status': 'error', 'message': 'Question already exist'}), 400
 
+            # Determine question type based on checkbox or content analysis
+            question_type = 'coding' if data.get('is_coding', False) else 'theory'
+            
             study_db.create_study_material(
                 question=data['question'],
                 answer=data['answer'],
-                belongs_to=data['type']
+                belongs_to=data['type'],
+                question_type=question_type
             )
                 
             return jsonify({'status': True, 'message': 'Question created successfully!'})
@@ -91,6 +113,29 @@ def update_study_questions():
                 return jsonify({'status': 'error', 'message': 'Question not found'}), 404
         except Exception as e:
             return jsonify({'status': 'error', 'message': 'Invalid JSON data'}), 400
+
+@app.route('/show-questions/reclassify', methods=['POST'])
+def reclassify_question():
+    """Reclassify a question as coding or theory"""
+    try:
+        data = request.get_json()
+        question_id = data.get('id')
+        new_type = data.get('type', 'theory')  # Default to theory
+        
+        if not question_id:
+            return jsonify({'status': False, 'message': 'Missing question ID'}), 400
+        
+        success = study_db.reclassify_question_type(question_id, new_type)
+        if success:
+            return jsonify({
+                'status': True, 
+                'message': f'Question reclassified as {new_type} successfully'
+            })
+        else:
+            return jsonify({'status': False, 'message': 'Failed to reclassify question'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': False, 'message': str(e)}), 500
 
 @app.route('/add_interview')
 def add_interview_web():
@@ -303,6 +348,167 @@ def get_recent_interviews():
             'data': interviews,
             'count': len(interviews),
             'days': days
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# Graph loading endpoints
+@app.route('/api/graph/<graph_type>')
+def get_graph(graph_type):
+    """Get graph data via AJAX"""
+    try:
+        # Try to get from cache first
+        graph_data = graph_cache.get_cached_graph(graph_type)
+        
+        if graph_data:
+            return jsonify({
+                'status': 'success',
+                'data': f'data:image/png;base64,{graph_data}',
+                'cached': True
+            })
+        
+        # If not cached, check if it's being generated
+        is_generating = background_generator.is_generating(graph_type)
+        
+        if is_generating:
+            return jsonify({
+                'status': 'generating',
+                'message': 'Graph is being generated in background'
+            })
+        
+        # Start background generation
+        generator_functions = {
+            'interview_status': plot_interview_status,
+            'status_pie': plot_status_pie_chart,
+            'monthly_trend': plot_monthly_trend,
+            'company_distribution': plot_company_distribution
+        }
+        
+        if graph_type in generator_functions:
+            background_generator.generate_graph_async(graph_type, generator_functions[graph_type])
+            return jsonify({
+                'status': 'generating',
+                'message': 'Graph generation started'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Unknown graph type'
+            }), 400
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/graph/status/<graph_type>')
+def check_graph_status(graph_type):
+    """Check if graph is ready or being generated"""
+    try:
+        # Check cache
+        graph_data = graph_cache.get_cached_graph(graph_type)
+        if graph_data:
+            return jsonify({
+                'status': 'ready',
+                'data': f'data:image/png;base64,{graph_data}'
+            })
+        
+        # Check if being generated
+        is_generating = background_generator.is_generating(graph_type)
+        return jsonify({
+            'status': 'generating' if is_generating else 'not_started',
+            'message': 'Graph is being generated' if is_generating else 'Graph generation not started'
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# Coding Questions API Routes
+@app.route('/api/coding-questions', methods=['GET'])
+def get_coding_questions():
+    """Get all coding questions"""
+    try:
+        questions = coding_db.get_all_coding_questions()
+        return jsonify({
+            'status': 'success',
+            'questions': questions,
+            'count': len(questions)
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/coding-questions', methods=['POST'])
+def add_coding_question():
+    """Add a new coding question"""
+    try:
+        data = request.get_json()
+        question = data.get('question', '')
+        answer = data.get('answer', '')
+        category = data.get('category', '')
+        is_coding = data.get('is_coding', False)
+        
+        if not question or not answer or not category:
+            return jsonify({'status': False, 'message': 'Missing required fields'}), 400
+        
+        success = coding_db.add_coding_question(question, answer, category)
+        if success:
+            return jsonify({'status': True, 'message': 'Coding question added successfully'})
+        else:
+            return jsonify({'status': False, 'message': 'Failed to add coding question'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': False, 'message': str(e)}), 500
+
+@app.route('/api/coding-questions', methods=['PUT'])
+def update_coding_question():
+    """Update an existing coding question"""
+    try:
+        data = request.get_json()
+        question_id = data.get('id')
+        question = data.get('question', '')
+        answer = data.get('answer', '')
+        category = data.get('category', '')
+        
+        if not question_id:
+            return jsonify({'status': False, 'message': 'Missing question ID'}), 400
+        
+        success = coding_db.update_coding_question(question_id, question, answer, category)
+        if success:
+            return jsonify({'status': True, 'message': 'Coding question updated successfully'})
+        else:
+            return jsonify({'status': False, 'message': 'Failed to update coding question'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': False, 'message': str(e)}), 500
+
+@app.route('/api/coding-questions', methods=['DELETE'])
+def delete_coding_question():
+    """Delete a coding question"""
+    try:
+        data = request.get_json()
+        question_id = data.get('id')
+        
+        if not question_id:
+            return jsonify({'status': False, 'message': 'Missing question ID'}), 400
+        
+        success = coding_db.delete_coding_question(question_id)
+        if success:
+            return jsonify({'status': True, 'message': 'Coding question deleted successfully'})
+        else:
+            return jsonify({'status': False, 'message': 'Failed to delete coding question'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': False, 'message': str(e)}), 500
+
+@app.route('/api/coding-questions/search')
+def search_coding_questions():
+    """Search coding questions"""
+    try:
+        search_query = request.args.get('q', '')
+        questions = coding_db.search_coding_questions(search_query)
+        return jsonify({
+            'status': 'success',
+            'questions': questions,
+            'count': len(questions),
+            'query': search_query
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500

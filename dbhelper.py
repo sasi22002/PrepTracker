@@ -209,17 +209,17 @@ class StudyMaterialDBHelper:
         self.db = db_helper
     
     def get_all_study_materials(self) -> List[Dict[str, Any]]:
-        query = "SELECT id, question, answer, belongs_to, repeat_count FROM preparation_master WHERE is_deleted = 0"
+        query = "SELECT id, question, answer, belongs_to, repeat_count, question_type FROM preparation_master WHERE is_deleted = 0"
         return self.db.execute_query(query)
     
     def get_study_material_by_id(self, material_id: int) -> Optional[Dict[str, Any]]:
-        query = "SELECT id, question, answer, belongs_to, repeat_count FROM preparation_master WHERE id = ? AND is_deleted = 0"
+        query = "SELECT id, question, answer, belongs_to, repeat_count, question_type FROM preparation_master WHERE id = ? AND is_deleted = 0"
         result = self.db.execute_query(query, (material_id,))
         return result[0] if result else None
     
-    def create_study_material(self, question: str, answer: str, belongs_to: str) -> int:
-        query = "INSERT INTO preparation_master (question, answer, belongs_to, repeat_count, is_deleted) VALUES (?, ?, ?, ?, ?)"
-        return self.db.execute_write(query, (question, answer, belongs_to, 0, 0))
+    def create_study_material(self, question: str, answer: str, belongs_to: str, question_type: str = 'theory') -> int:
+        query = "INSERT INTO preparation_master (question, answer, belongs_to, repeat_count, is_deleted, question_type) VALUES (?, ?, ?, ?, ?, ?)"
+        return self.db.execute_write(query, (question, answer, belongs_to, 0, 0, question_type))
     
     def update_study_material(self, material_id: int, answer: str) -> int:
         query = "UPDATE preparation_master SET answer = ? WHERE id = ?"
@@ -233,6 +233,11 @@ class StudyMaterialDBHelper:
         query = "SELECT COUNT(*) as count FROM preparation_master WHERE question = ? AND is_deleted = 0"
         result = self.db.execute_query(query, (question,))
         return result[0]['count'] > 0
+    
+    def reclassify_question_type(self, material_id: int, question_type: str) -> int:
+        """Reclassify a question as coding or theory"""
+        query = "UPDATE preparation_master SET question_type = ? WHERE id = ?"
+        return self.db.execute_update(query, (question_type, material_id))
 
 class StatusStateDBHelper:
     def __init__(self, db_helper: DBHelper):
