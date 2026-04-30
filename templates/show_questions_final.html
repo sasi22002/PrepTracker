@@ -390,7 +390,7 @@
                         {% if question.repeat_count > 0 %}
                         <span class="badge badge-info ml-2">Repeated {{ question.repeat_count }} times</span>
                         {% endif %}
-                        {% if question.get('question_type') == 'coding' %}
+                        {% if question.question_type == 'coding' or (question.get('question_type') == 'coding') %}
                         <span class="badge badge-success ml-2">Coding</span>
                         {% endif %}
                     </div>
@@ -408,6 +408,11 @@
                         <button class="btn btn-sm btn-info repeat-btn" data-id="{{ question.id }}">
                             <i class="fas fa-redo"></i> Mark as Repeated
                         </button>
+                        {% if question.question_type != 'coding' and question.get('question_type') != 'coding' %}
+                        <button class="btn btn-sm reclassify-btn mark-coding-btn" data-id="{{ question.id }}" title="Mark as Coding Question">
+                            <i class="fas fa-code"></i> Mark as Coding
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -664,6 +669,9 @@
                         '<button class="btn btn-sm btn-info repeat-btn" data-id="' + question.id + '">' +
                             '<i class="fas fa-redo"></i> Mark as Repeated' +
                         '</button>' +
+                        (question.question_type !== 'coding' && question.get && question.get('question_type') !== 'coding' ? '<button class="btn btn-sm reclassify-btn mark-coding-btn" data-id="' + question.id + '" title="Mark as Coding Question">' +
+                            '<i class="fas fa-code"></i> Mark as Coding' +
+                        '</button>' : '') +
                     '</div>' +
                     '</div>';
             }
@@ -751,6 +759,13 @@
                 if (repeatTarget) {
                     const id = repeatTarget.dataset.id;
                     markQuestionAsRepeated(id);
+                    return;
+                }
+                
+                const markCodingTarget = e.target.closest('.mark-coding-btn');
+                if (markCodingTarget) {
+                    const id = markCodingTarget.dataset.id;
+                    markQuestionAsCoding(id);
                     return;
                 }
             });
@@ -952,6 +967,64 @@
 
         function markQuestionAsRepeated(id) {
             showAlert('Feature to mark as repeated would need additional backend implementation', 'warning');
+        }
+
+        // Mark question as coding function
+        function markQuestionAsCoding(id) {
+            if (confirm('Are you sure you want to mark this question as a Coding Question? It will appear in the Coding tab.')) {
+                const btn = document.querySelector('#question-' + id + ' .mark-coding-btn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                }
+
+                fetch('/show-questions/reclassify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id,
+                        type: 'coding'
+                    })
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.status === true) {
+                        showAlert('Question marked as Coding successfully!', 'success');
+                        
+                        // Update the question in allQuestions array
+                        const questionIndex = allQuestions.findIndex(function(q) {
+                            return q.id == id;
+                        });
+                        
+                        if (questionIndex !== -1) {
+                            allQuestions[questionIndex].question_type = 'coding';
+                        }
+                        
+                        // Force page reload to ensure persistence and proper button visibility
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showAlert('Error: ' + data.message, 'error');
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-code"></i> Mark as Coding';
+                        }
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    showAlert('An error occurred while marking the question as coding.', 'error');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-code"></i> Mark as Coding';
+                    }
+                });
+            }
         }
 
         // Reclassify question function

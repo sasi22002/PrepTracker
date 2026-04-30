@@ -425,7 +425,7 @@
 
         <!-- Main Statistics Cards -->
         <div class="stats-grid fade-in">
-            <div class="stat-card primary clickable" data-category="all">
+            <div class="stat-card primary clickable" data-category="all" onclick="showInterviewDetails('all')">
                 <div class="stat-icon">
                     <i class="fas fa-briefcase"></i>
                 </div>
@@ -433,7 +433,7 @@
                 <div class="stat-label">Total Interviews</div>
             </div>
             
-            <div class="stat-card success clickable" data-category="positive">
+            <div class="stat-card success clickable" data-category="positive" onclick="showInterviewDetails('positive')">
                 <div class="stat-icon">
                     <i class="fas fa-check-circle"></i>
                 </div>
@@ -441,7 +441,7 @@
                 <div class="stat-label">Positive Outcomes</div>
             </div>
             
-            <div class="stat-card danger clickable" data-category="negative">
+            <div class="stat-card danger clickable" data-category="negative" onclick="showInterviewDetails('negative')">
                 <div class="stat-icon">
                     <i class="fas fa-times-circle"></i>
                 </div>
@@ -449,7 +449,7 @@
                 <div class="stat-label">Negative Outcomes</div>
             </div>
             
-            <div class="stat-card warning clickable" data-category="neutral">
+            <div class="stat-card warning clickable" data-category="neutral" onclick="showInterviewDetails('neutral')">
                 <div class="stat-icon">
                     <i class="fas fa-clock"></i>
                 </div>
@@ -457,7 +457,7 @@
                 <div class="stat-label">Pending/Neutral</div>
             </div>
             
-            <div class="stat-card info clickable" data-category="recent">
+            <div class="stat-card info clickable" data-category="recent" onclick="showInterviewDetails('recent')">
                 <div class="stat-icon">
                     <i class="fas fa-calendar"></i>
                 </div>
@@ -698,107 +698,87 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Bootstrap JS and dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
+        console.log('Dashboard script loading...');
+        
         // Function to show interview details modal
         function showInterviewDetails(category) {
             console.log('showInterviewDetails called with category:', category);
             
-            try {
-                const modal = $('#interviewDetailsModal');
-                const modalTitle = $('#interviewDetailsModalLabel');
-                const loadingSpinner = $('.loading-spinner');
-                const interviewList = $('#interviewList');
-                
-                if (!modal.length) {
-                    console.error('Modal not found!');
-                    alert('Modal not found. Please refresh the page.');
-                    return;
-                }
-                
-                // Set modal title based on category
-                const titles = {
-                    'all': 'All Interviews',
-                    'positive': 'Positive Outcomes',
-                    'negative': 'Negative Outcomes', 
-                    'neutral': 'Pending/Neutral',
-                    'recent': 'Recent Interviews (Last 30 Days)'
-                };
-                
-                modalTitle.html(`<i class="fas fa-list"></i> ${titles[category] || 'Interview Details'}`);
-                
-                // Reset modal content
-                loadingSpinner.show();
-                interviewList.hide().empty();
-                
-                // Show modal first, then fetch data
-                modal.modal('show');
-                
-                // Fetch interview data
-                let apiUrl;
-                if (category === 'all') {
-                    // For all interviews, we'll use the recent endpoint with more days
-                    apiUrl = '/api/interviews/recent?days=365';
-                } else {
-                    apiUrl = `/api/interviews/category/${category}`;
-                }
-                
-                console.log('Fetching from API:', apiUrl);
-                
-                fetch(apiUrl)
-                    .then(response => {
-                        console.log('API response status:', response.status);
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('API response data:', data);
-                        loadingSpinner.hide();
-                        
-                        if (data.status === 'success' && data.data) {
-                            displayInterviews(data.data, category);
-                        } else {
-                            interviewList.html('<p class="text-danger">Error loading interview details: ' + (data.message || 'Unknown error') + '</p>');
-                        }
-                        interviewList.show();
-                    })
-                    .catch(error => {
-                        console.error('API fetch error:', error);
-                        loadingSpinner.hide();
-                        interviewList.html('<p class="text-danger">Error loading interview details. Please try again.</p>');
-                        interviewList.show();
-                    });
-                
-            } catch (error) {
-                console.error('Error in showInterviewDetails:', error);
-                alert('An error occurred while loading interview details. Please check the console for details.');
+            const titles = {
+                'all': 'All Interviews',
+                'positive': 'Positive Outcomes',
+                'negative': 'Negative Outcomes', 
+                'neutral': 'Pending/Neutral',
+                'recent': 'Recent Interviews (Last 30 Days)'
+            };
+            
+            $('#interviewDetailsModalLabel').html(`<i class="fas fa-list"></i> ${titles[category] || 'Interview Details'}`);
+            
+            // Reset modal content
+            $('.loading-spinner').show();
+            $('#interviewList').hide().empty();
+            
+            // Show modal
+            $('#interviewDetailsModal').modal('show');
+            
+            // Fetch interview data
+            let apiUrl;
+            if (category === 'all') {
+                apiUrl = '/api/interviews/recent?days=365';
+            } else {
+                apiUrl = `/api/interviews/category/${category}`;
             }
+            
+            console.log('Fetching from API:', apiUrl);
+            
+            fetch(apiUrl)
+                .then(response => {
+                    console.log('API response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API response data:', data);
+                    $('.loading-spinner').hide();
+                    
+                    if (data.status === 'success' && data.data) {
+                        displayInterviews(data.data, category);
+                    } else {
+                        $('#interviewList').html('<p class="text-danger">Error loading interview details: ' + (data.message || 'Unknown error') + '</p>');
+                    }
+                    $('#interviewList').show();
+                })
+                .catch(error => {
+                    console.error('API fetch error:', error);
+                    $('.loading-spinner').hide();
+                    $('#interviewList').html('<p class="text-danger">Error loading interview details. Please try again.</p>');
+                    $('#interviewList').show();
+                });
         }
         
         // Function to display interviews in the modal
         function displayInterviews(interviews, category) {
-            const interviewList = $('#interviewList');
-            
             if (!interviews || interviews.length === 0) {
-                interviewList.html('<p class="text-muted">No interviews found for this category.</p>');
+                $('#interviewList').html('<p class="text-muted">No interviews found for this category.</p>');
                 return;
             }
             
             let html = '';
             interviews.forEach(interview => {
-                // Handle different field names that might come from API
                 const status = interview.normalized_status || interview.status || 'Unknown';
                 const state = interview.normalized_state || interview.state || 'Unknown';
                 const companyName = interview.company_name || interview.company || 'Unknown Company';
@@ -835,7 +815,7 @@
                 `;
             });
             
-            interviewList.html(html);
+            $('#interviewList').html(html);
         }
         
         // Helper function to get status category
@@ -916,20 +896,11 @@
                 });
         }
         
-        // Add fade-in animation to elements as they come into view
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard DOM loaded');
+        // Initialize when DOM is ready
+        $(document).ready(function() {
+            console.log('Dashboard DOM ready');
             
-            // Initialize modal
-            const modal = $('#interviewDetailsModal');
-            if (modal.length) {
-                console.log('Modal found and initialized');
-                modal.modal({ show: false });
-            } else {
-                console.error('Modal not found during initialization');
-            }
-            
-                        
+            // Add fade-in animation to elements as they come into view
             const observerOptions = {
                 threshold: 0.1,
                 rootMargin: '0px 0px -50px 0px'
@@ -952,61 +923,15 @@
                 observer.observe(el);
             });
 
-            // Add hover effects to cards
-            document.querySelectorAll('.stat-card, .chart-container').forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-8px) scale(1.02)';
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0) scale(1)';
-                });
-            });
-
-            // Add click handlers for clickable cards
-            document.querySelectorAll('.stat-card.clickable').forEach(card => {
-                card.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const category = this.getAttribute('data-category');
-                    console.log('Card clicked, category:', category);
-                    if (category) {
-                        showInterviewDetails(category);
-                    } else {
-                        console.error('Could not find data-category attribute');
-                    }
-                });
-            });
-            
-            // Global event delegation as fallback
-            document.addEventListener('click', function(e) {
-                const card = e.target.closest('.stat-card.clickable');
-                if (card) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const category = card.getAttribute('data-category');
-                    console.log('Global delegation - Card clicked, category:', category);
-                    if (category) {
-                        showInterviewDetails(category);
-                    } else {
-                        console.error('Global delegation - Could not find data-category attribute');
-                    }
+            // Add hover effects to cards (CSS handles this, but we can enhance with JS)
+            $('.stat-card, .chart-container').hover(
+                function() {
+                    $(this).css('transform', 'translateY(-8px) scale(1.02)');
+                },
+                function() {
+                    $(this).css('transform', 'translateY(0) scale(1)');
                 }
-            });
-
-            // Smooth scroll for anchor links
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                });
-            });
+            );
             
             // Load dashboard graphs after page loads
             loadDashboardGraphs();

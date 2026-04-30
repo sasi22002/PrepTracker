@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Tracker - Dashboard</title>
+    
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            text-align: center;
+            padding: 40px 0;
+            color: white;
+        }
+        header h1 {
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+            color: white;
+        }
+        
+        /* Statistics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 18px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+        .stat-card .stat-icon {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-card .stat-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 6px;
+            line-height: 1;
+        }
+        .stat-card .stat-label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card.primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .stat-card.primary .stat-number, .stat-card.primary .stat-label { color: white; }
+        .stat-card.primary .stat-icon { background: white; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-card.success { background: linear-gradient(135deg, #28a745, #20c997); color: white; }
+        .stat-card.success .stat-number, .stat-card.success .stat-label { color: white; }
+        .stat-card.success .stat-icon { background: white; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-card.danger { background: linear-gradient(135deg, #dc3545, #c82333); color: white; }
+        .stat-card.danger .stat-number, .stat-card.danger .stat-label { color: white; }
+        .stat-card.danger .stat-icon { background: white; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-card.warning { background: linear-gradient(135deg, #ffc107, #e0a800); color: white; }
+        .stat-card.warning .stat-number, .stat-card.warning .stat-label { color: white; }
+        .stat-card.warning .stat-icon { background: white; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-card.info { background: linear-gradient(135deg, #17a2b8, #138496); color: white; }
+        .stat-card.info .stat-number, .stat-card.info .stat-label { color: white; }
+        .stat-card.info .stat-icon { background: white; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        
+        /* Modal styles */
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            border-radius: 20px 20px 0 0;
+            border: none;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .modal-title {
+            font-weight: 600;
+        }
+        .modal-body {
+            padding: 30px;
+        }
+        .interview-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .interview-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+        .interview-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .interview-item.positive {
+            border-left-color: #28a745;
+        }
+        .interview-item.negative {
+            border-left-color: #dc3545;
+        }
+        .interview-item.neutral {
+            border-left-color: #ffc107;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-badge.positive {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-badge.negative {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-badge.neutral {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading-spinner .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="display-4">Interview Dashboard</h1>
+            <p class="lead">Comprehensive Analytics and Insights</p>
+        </header>
+
+        <!-- Action Buttons -->
+        <div class="text-center mb-4">
+            <a href="{{ url_for('home') }}" class="btn btn-primary mr-2">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+            <a href="{{ url_for('add_interview_web') }}" class="btn btn-success mr-2">
+                <i class="fas fa-plus"></i> Add Interview
+            </a>
+            <a href="{{ url_for('show_questions') }}" class="btn btn-info">
+                <i class="fas fa-book"></i> Study Materials
+            </a>
+        </div>
+
+        <!-- Main Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card primary" onclick="showInterviewDetails('all')">
+                <div class="stat-icon">
+                    <i class="fas fa-briefcase"></i>
+                </div>
+                <div class="stat-number">{{ interview_stats.total_interviews }}</div>
+                <div class="stat-label">Total Interviews</div>
+            </div>
+            
+            <div class="stat-card success" onclick="showInterviewDetails('positive')">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-number">{{ interview_stats.status_categories.positive }}</div>
+                <div class="stat-label">Positive Outcomes</div>
+            </div>
+            
+            <div class="stat-card danger" onclick="showInterviewDetails('negative')">
+                <div class="stat-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="stat-number">{{ interview_stats.status_categories.negative }}</div>
+                <div class="stat-label">Negative Outcomes</div>
+            </div>
+            
+            <div class="stat-card warning" onclick="showInterviewDetails('neutral')">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-number">{{ interview_stats.status_categories.neutral }}</div>
+                <div class="stat-label">Pending/Neutral</div>
+            </div>
+            
+            <div class="stat-card info" onclick="showInterviewDetails('recent')">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar"></i>
+                </div>
+                <div class="stat-number">{{ interview_stats.recent_interviews }}</div>
+                <div class="stat-label">Last 30 Days</div>
+            </div>
+            
+            <div class="stat-card primary">
+                <div class="stat-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="stat-number">{{ interview_stats.company_breakdown|length }}</div>
+                <div class="stat-label">Companies</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interview Details Modal -->
+    <div class="modal fade" id="interviewDetailsModal" tabindex="-1" role="dialog" aria-labelledby="interviewDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="interviewDetailsModalLabel">
+                        <i class="fas fa-list"></i> Interview Details
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p class="mt-2">Loading interview details...</p>
+                    </div>
+                    <div class="interview-list" id="interviewList">
+                        <!-- Interview items will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        console.log('Dashboard script loading...');
+        
+        // Function to show interview details modal
+        function showInterviewDetails(category) {
+            console.log('showInterviewDetails called with category:', category);
+            
+            const titles = {
+                'all': 'All Interviews',
+                'positive': 'Positive Outcomes',
+                'negative': 'Negative Outcomes', 
+                'neutral': 'Pending/Neutral',
+                'recent': 'Recent Interviews (Last 30 Days)'
+            };
+            
+            $('#interviewDetailsModalLabel').html(`<i class="fas fa-list"></i> ${titles[category] || 'Interview Details'}`);
+            
+            // Reset modal content
+            $('.loading-spinner').show();
+            $('#interviewList').hide().empty();
+            
+            // Show modal
+            $('#interviewDetailsModal').modal('show');
+            
+            // Fetch interview data
+            let apiUrl;
+            if (category === 'all') {
+                apiUrl = '/api/interviews/recent?days=365';
+            } else {
+                apiUrl = `/api/interviews/category/${category}`;
+            }
+            
+            console.log('Fetching from API:', apiUrl);
+            
+            fetch(apiUrl)
+                .then(response => {
+                    console.log('API response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API response data:', data);
+                    $('.loading-spinner').hide();
+                    
+                    if (data.status === 'success' && data.data) {
+                        displayInterviews(data.data, category);
+                    } else {
+                        $('#interviewList').html('<p class="text-danger">Error loading interview details: ' + (data.message || 'Unknown error') + '</p>');
+                    }
+                    $('#interviewList').show();
+                })
+                .catch(error => {
+                    console.error('API fetch error:', error);
+                    $('.loading-spinner').hide();
+                    $('#interviewList').html('<p class="text-danger">Error loading interview details. Please try again.</p>');
+                    $('#interviewList').show();
+                });
+        }
+        
+        // Function to display interviews in the modal
+        function displayInterviews(interviews, category) {
+            if (!interviews || interviews.length === 0) {
+                $('#interviewList').html('<p class="text-muted">No interviews found for this category.</p>');
+                return;
+            }
+            
+            let html = '';
+            interviews.forEach(interview => {
+                const status = interview.normalized_status || interview.status || 'Unknown';
+                const state = interview.normalized_state || interview.state || 'Unknown';
+                const companyName = interview.company_name || interview.company || 'Unknown Company';
+                const interviewDate = interview.date || 'Unknown Date';
+                const interviewId = interview.sno || interview.id;
+                const description = interview.description || '';
+                
+                const statusCategory = getStatusCategory(status);
+                const statusClass = getStatusCategoryClass(statusCategory);
+                
+                html += `
+                    <div class="interview-item ${statusClass}">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <strong>${companyName}</strong>
+                            </div>
+                            <div class="col-md-2">
+                                <small class="text-muted">${interviewDate}</small>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="status-badge ${statusClass}">${status}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <small class="text-muted">${state}</small>
+                            </div>
+                            <div class="col-md-3 text-right">
+                                <a href="/view/${interviewId}/" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </div>
+                        </div>
+                        ${description ? `<div class="mt-2"><small class="text-muted">${description}</small></div>` : ''}
+                    </div>
+                `;
+            });
+            
+            $('#interviewList').html(html);
+        }
+        
+        // Helper function to get status category
+        function getStatusCategory(status) {
+            const positiveStatuses = ['Offered', 'Passed', 'Selected', 'Joined'];
+            const negativeStatuses = ['Rejected', 'Failed', 'Withdrawn'];
+            
+            if (positiveStatuses.includes(status)) return 'positive';
+            if (negativeStatuses.includes(status)) return 'negative';
+            return 'neutral';
+        }
+        
+        // Helper function to get CSS class for status category
+        function getStatusCategoryClass(category) {
+            return category;
+        }
+        
+        // Initialize when DOM is ready
+        $(document).ready(function() {
+            console.log('Dashboard DOM ready');
+        });
+    </script>
+</body>
+</html>

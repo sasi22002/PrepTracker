@@ -50,5 +50,6 @@ class StudyMaterial(db.Model):
     is_deleted = db.Column(db.Boolean, default=False)
     belongs_to = db.Column(db.String(20))
     repeat_count = db.Column(db.Integer, default=0)
+    question_type = db.Column(db.String(20), default='theory')  # 'coding' or 'theory'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
