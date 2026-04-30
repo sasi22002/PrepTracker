@@ -11,6 +11,7 @@ app.secret_key = 'interview_tracker_secure_key_2024'  # Change this in productio
 from plot_gen import plot_interview_status, plot_status_pie_chart, plot_monthly_trend, plot_company_distribution
 from graph_cache import graph_cache, background_generator
 from coding_db import coding_db
+from auth_db import auth_db
 
 # Authentication decorator
 def login_required(f):
@@ -27,8 +28,8 @@ def login():
     if request.method == 'POST':
         pin = request.form.get('pin', '')
         
-        # Verify PIN (269900)
-        if pin == '269900':
+        # Verify PIN using database hash comparison
+        if auth_db.verify_pin(pin):
             session['authenticated'] = True
             session['login_time'] = datetime.now().isoformat()
             return redirect(url_for('home'))
