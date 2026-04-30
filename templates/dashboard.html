@@ -9,6 +9,159 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
+    <script>
+        // Define showInterviewDetails function immediately to ensure it's available
+        function showInterviewDetails(category) {
+            console.log('showInterviewDetails called with category:', category);
+            
+            const titles = {
+                'all': 'All Interviews',
+                'positive': 'Positive Outcomes',
+                'negative': 'Negative Outcomes', 
+                'neutral': 'Pending/Neutral',
+                'recent': 'Recent Interviews (Last 30 Days)'
+            };
+            
+            // Update modal title
+            const modalLabel = document.getElementById('interviewDetailsModalLabel');
+            if (modalLabel) {
+                modalLabel.innerHTML = `<i class="fas fa-list"></i> ${titles[category] || 'Interview Details'}`;
+            }
+            
+            // Reset modal content
+            const spinner = document.querySelector('.loading-spinner');
+            const interviewList = document.getElementById('interviewList');
+            if (spinner) spinner.style.display = 'block';
+            if (interviewList) {
+                interviewList.style.display = 'none';
+                interviewList.innerHTML = '';
+            }
+            
+            // Show modal
+            const modal = document.getElementById('interviewDetailsModal');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.classList.add('show');
+                document.body.classList.add('modal-open');
+            }
+            
+            // Fetch interview data
+            let apiUrl;
+            if (category === 'all') {
+                apiUrl = '/api/interviews/recent?days=365';
+            } else {
+                apiUrl = `/api/interviews/category/${category}`;
+            }
+            
+            console.log('Fetching from API:', apiUrl);
+            
+            fetch(apiUrl)
+                .then(response => {
+                    console.log('API response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API response data:', data);
+                    if (spinner) spinner.style.display = 'none';
+                    
+                    if (data.status === 'success' && data.data) {
+                        displayInterviews(data.data, category);
+                    } else {
+                        if (interviewList) {
+                            interviewList.innerHTML = '<p class="text-danger">Error loading interview details: ' + (data.message || 'Unknown error') + '</p>';
+                        }
+                    }
+                    if (interviewList) interviewList.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('API fetch error:', error);
+                    if (spinner) spinner.style.display = 'none';
+                    if (interviewList) {
+                        interviewList.innerHTML = '<p class="text-danger">Error loading interview details. Please try again.</p>';
+                        interviewList.style.display = 'block';
+                    }
+                });
+        }
+        
+        // Define displayInterviews function
+        function displayInterviews(interviews, category) {
+            const interviewList = document.getElementById('interviewList');
+            if (!interviewList) return;
+            
+            if (!interviews || interviews.length === 0) {
+                interviewList.innerHTML = '<p class="text-muted">No interviews found for this category.</p>';
+                return;
+            }
+            
+            let html = '';
+            interviews.forEach(interview => {
+                const status = interview.normalized_status || interview.status || 'Unknown';
+                const state = interview.normalized_state || interview.state || 'Unknown';
+                const companyName = interview.company_name || interview.company || 'Unknown Company';
+                const interviewDate = interview.date || 'Unknown Date';
+                const interviewId = interview.sno || interview.id;
+                const description = interview.description || '';
+                
+                const statusCategory = getStatusCategory(status);
+                const statusClass = getStatusCategoryClass(statusCategory);
+                
+                html += `
+                    <div class="interview-item ${statusClass}">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <strong>${companyName}</strong>
+                            </div>
+                            <div class="col-md-2">
+                                <small class="text-muted">${interviewDate}</small>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="status-badge ${statusClass}">${status}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <small class="text-muted">${state}</small>
+                            </div>
+                            <div class="col-md-3 text-right">
+                                <a href="/view/${interviewId}/" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </div>
+                        </div>
+                        ${description ? `<div class="mt-2"><small class="text-muted">${description}</small></div>` : ''}
+                    </div>
+                `;
+            });
+            
+            interviewList.innerHTML = html;
+        }
+        
+        // Define helper functions
+        function getStatusCategory(status) {
+            const positiveStatuses = ['Offered', 'Passed', 'Selected', 'Joined'];
+            const negativeStatuses = ['Rejected', 'Failed', 'Withdrawn'];
+            
+            if (positiveStatuses.includes(status)) return 'positive';
+            if (negativeStatuses.includes(status)) return 'negative';
+            return 'neutral';
+        }
+        
+        function getStatusCategoryClass(category) {
+            return category;
+        }
+        
+        // Close modal function
+        function closeModal() {
+            const modal = document.getElementById('interviewDetailsModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                document.body.classList.remove('modal-open');
+            }
+        }
+    </script>
+
     <style>
         body, html {
             height: 100%;
@@ -72,6 +225,7 @@
             position: relative;
             overflow: hidden;
             pointer-events: auto;
+            z-index: 1;
         }
         .stat-card::before {
             content: '';
@@ -433,7 +587,7 @@
                 <div class="stat-label">Total Interviews</div>
             </div>
             
-            <div class="stat-card success clickable" data-category="positive" onclick="showInterviewDetails('positive')">
+            <div class="stat-card success clickable" data-category="positive" onclick="console.log('Positive card clicked'); showInterviewDetails('positive')">
                 <div class="stat-icon">
                     <i class="fas fa-check-circle"></i>
                 </div>
@@ -684,7 +838,7 @@
                     <h5 class="modal-title" id="interviewDetailsModalLabel">
                         <i class="fas fa-list"></i> Interview Details
                     </h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" onclick="closeModal()" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -711,127 +865,6 @@
 
     <script>
         console.log('Dashboard script loading...');
-        
-        // Function to show interview details modal
-        function showInterviewDetails(category) {
-            console.log('showInterviewDetails called with category:', category);
-            
-            const titles = {
-                'all': 'All Interviews',
-                'positive': 'Positive Outcomes',
-                'negative': 'Negative Outcomes', 
-                'neutral': 'Pending/Neutral',
-                'recent': 'Recent Interviews (Last 30 Days)'
-            };
-            
-            $('#interviewDetailsModalLabel').html(`<i class="fas fa-list"></i> ${titles[category] || 'Interview Details'}`);
-            
-            // Reset modal content
-            $('.loading-spinner').show();
-            $('#interviewList').hide().empty();
-            
-            // Show modal
-            $('#interviewDetailsModal').modal('show');
-            
-            // Fetch interview data
-            let apiUrl;
-            if (category === 'all') {
-                apiUrl = '/api/interviews/recent?days=365';
-            } else {
-                apiUrl = `/api/interviews/category/${category}`;
-            }
-            
-            console.log('Fetching from API:', apiUrl);
-            
-            fetch(apiUrl)
-                .then(response => {
-                    console.log('API response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('API response data:', data);
-                    $('.loading-spinner').hide();
-                    
-                    if (data.status === 'success' && data.data) {
-                        displayInterviews(data.data, category);
-                    } else {
-                        $('#interviewList').html('<p class="text-danger">Error loading interview details: ' + (data.message || 'Unknown error') + '</p>');
-                    }
-                    $('#interviewList').show();
-                })
-                .catch(error => {
-                    console.error('API fetch error:', error);
-                    $('.loading-spinner').hide();
-                    $('#interviewList').html('<p class="text-danger">Error loading interview details. Please try again.</p>');
-                    $('#interviewList').show();
-                });
-        }
-        
-        // Function to display interviews in the modal
-        function displayInterviews(interviews, category) {
-            if (!interviews || interviews.length === 0) {
-                $('#interviewList').html('<p class="text-muted">No interviews found for this category.</p>');
-                return;
-            }
-            
-            let html = '';
-            interviews.forEach(interview => {
-                const status = interview.normalized_status || interview.status || 'Unknown';
-                const state = interview.normalized_state || interview.state || 'Unknown';
-                const companyName = interview.company_name || interview.company || 'Unknown Company';
-                const interviewDate = interview.date || 'Unknown Date';
-                const interviewId = interview.sno || interview.id;
-                const description = interview.description || '';
-                
-                const statusCategory = getStatusCategory(status);
-                const statusClass = getStatusCategoryClass(statusCategory);
-                
-                html += `
-                    <div class="interview-item ${statusClass}">
-                        <div class="row align-items-center">
-                            <div class="col-md-3">
-                                <strong>${companyName}</strong>
-                            </div>
-                            <div class="col-md-2">
-                                <small class="text-muted">${interviewDate}</small>
-                            </div>
-                            <div class="col-md-2">
-                                <span class="status-badge ${statusClass}">${status}</span>
-                            </div>
-                            <div class="col-md-2">
-                                <small class="text-muted">${state}</small>
-                            </div>
-                            <div class="col-md-3 text-right">
-                                <a href="/view/${interviewId}/" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                            </div>
-                        </div>
-                        ${description ? `<div class="mt-2"><small class="text-muted">${description}</small></div>` : ''}
-                    </div>
-                `;
-            });
-            
-            $('#interviewList').html(html);
-        }
-        
-        // Helper function to get status category
-        function getStatusCategory(status) {
-            const positiveStatuses = ['Offered', 'Passed', 'Selected', 'Joined'];
-            const negativeStatuses = ['Rejected', 'Failed', 'Withdrawn'];
-            
-            if (positiveStatuses.includes(status)) return 'positive';
-            if (negativeStatuses.includes(status)) return 'negative';
-            return 'neutral';
-        }
-        
-        // Helper function to get CSS class for status category
-        function getStatusCategoryClass(category) {
-            return category;
-        }
         
         // Function to load dashboard graphs
         function loadDashboardGraphs() {
@@ -899,6 +932,14 @@
         // Initialize when DOM is ready
         $(document).ready(function() {
             console.log('Dashboard DOM ready');
+            
+            // Add event delegation for clickable cards
+            $(document).on('click', '.stat-card.clickable', function(e) {
+                e.preventDefault();
+                const category = $(this).data('category');
+                console.log('Card clicked via event delegation:', category);
+                showInterviewDetails(category);
+            });
             
             // Add fade-in animation to elements as they come into view
             const observerOptions = {
