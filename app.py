@@ -1,17 +1,50 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from datetime import datetime
 import json
 import os
+from functools import wraps
 from dbhelper import interview_db, company_db, question_db, study_db, status_state_db, statistics_db
 
 app = Flask(__name__)
+app.secret_key = 'interview_tracker_secure_key_2024'  # Change this in production
 
 from plot_gen import plot_interview_status, plot_status_pie_chart, plot_monthly_trend, plot_company_distribution
 from graph_cache import graph_cache, background_generator
 from coding_db import coding_db
 
+# Authentication decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'authenticated' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Authentication Routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        pin = request.form.get('pin', '')
+        
+        # Verify PIN (269900)
+        if pin == '269900':
+            session['authenticated'] = True
+            session['login_time'] = datetime.now().isoformat()
+            return redirect(url_for('home'))
+        else:
+            return render_template('login.html', error='Invalid PIN. Please try again.')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 # Routes
 @app.route('/')
+@login_required
 def home():
     # Load statistics immediately (fast operation)
     interviews = interview_db.get_all_interviews()
@@ -28,6 +61,7 @@ def home():
     return render_template('home.html', interviews=interviews, plot_url=plot_url, stats=stats)
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
     # Load statistics immediately (fast operation)
     interview_stats = statistics_db.get_interview_statistics()
@@ -60,6 +94,7 @@ def dashboard():
                          charts=charts)
 
 @app.route('/show-questions/')
+@login_required
 def show_questions():
     questions = study_db.get_all_study_materials()
     return render_template('show_questions_final.html', questions=questions)
@@ -138,12 +173,14 @@ def reclassify_question():
         return jsonify({'status': False, 'message': str(e)}), 500
 
 @app.route('/add_interview')
+@login_required
 def add_interview_web():
     status_options = status_state_db.get_all_status_options()
     state_options = status_state_db.get_all_state_options()
     return render_template('add_interview.html', status_options=status_options, state_options=state_options)
 
 @app.route('/view/<int:id>/')
+@login_required
 def view_interview_web(id):
     interview = interview_db.get_interview_with_questions(id)
     if not interview:
@@ -152,6 +189,7 @@ def view_interview_web(id):
     return render_template('view_interview.html', interview=interview)
 
 @app.route('/add_question', methods=['GET', 'POST', 'DELETE'])
+@login_required
 def add_question_web():
     if request.method == 'GET':
         questions = question_db.get_all_questions()
@@ -269,6 +307,7 @@ def save_interview():
         return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
 
 @app.route('/edit_interview/<int:id>/')
+@login_required
 def edit_interview_web(id):
     interview = interview_db.get_interview_by_id(id)
     if not interview:
