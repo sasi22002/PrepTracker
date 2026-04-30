@@ -43,6 +43,28 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/download-db')
+@login_required
+def download_database():
+    """Download the SQLite database file"""
+    db_path = 'prod.sqlite3'
+    
+    try:
+        import os
+        from flask import send_file
+        
+        if os.path.exists(db_path):
+            return send_file(
+                db_path,
+                as_attachment=True,
+                download_name=f'interview_tracker_{datetime.now().strftime("%Y%m%d_%H%M%S")}.sqlite3',
+                mimetype='application/x-sqlite3'
+            )
+        else:
+            return jsonify({'error': 'Database file not found'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Error downloading database: {str(e)}'}), 500
+
 # Routes
 @app.route('/')
 @login_required
