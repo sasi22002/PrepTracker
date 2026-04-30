@@ -741,7 +741,14 @@
         function showDescriptionModal(id, companyName, description) {
             document.getElementById('modalCompanyName').textContent = 'Company: ' + companyName;
             document.getElementById('modalDescription').textContent = description;
-            document.getElementById('viewFullDetailsBtn').href = '/view/' + id + '/';
+            
+            const viewBtn = document.getElementById('viewFullDetailsBtn');
+            viewBtn.setAttribute('href', '/view/' + id + '/');
+            viewBtn.onclick = function(e) {
+                e.preventDefault();
+                window.location.href = '/view/' + id + '/';
+            };
+            
             $('#descriptionModal').modal('show');
         }
 
@@ -823,6 +830,15 @@
         
         // Add fade-in animation to elements as they come into view
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Home page DOM loaded');
+            
+            // Initialize modal
+            const modal = $('#descriptionModal');
+            if (modal.length) {
+                console.log('Description modal initialized');
+                modal.modal({ show: false });
+            }
+            
             // Add hover effects to cards
             document.querySelectorAll('.stat-card, .chart-container').forEach(card => {
                 card.addEventListener('mouseenter', function() {
@@ -836,11 +852,23 @@
 
             // Add click event listeners for view interview buttons
             document.querySelectorAll('.view-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
                     const id = this.getAttribute('data-id');
                     const company = this.getAttribute('data-company');
                     const description = this.getAttribute('data-description');
+                    console.log('View button clicked:', { id, company, description });
                     showDescriptionModal(id, company, description);
+                });
+            });
+
+            // Add click event listeners for delete interview buttons
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const id = this.getAttribute('data-id');
+                    console.log('Delete button clicked:', id);
+                    deleteInterview(id);
                 });
             });
 
