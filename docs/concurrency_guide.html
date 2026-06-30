@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Concurrency Guide: Threads, Executors & Async</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .intro-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .intro-box h2 {
+            color: #1a1a2e;
+            margin-bottom: 15px;
+        }
+        
+        .analogy {
+            background: #fff;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 10px 10px 0;
+        }
+        
+        .analogy-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        section {
+            margin-bottom: 50px;
+            border: 2px solid #eee;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            padding: 25px 30px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .section-header.thread {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .section-header.executor {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .section-header.async {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .section-header h2 {
+            font-size: 1.8rem;
+        }
+        
+        .section-icon {
+            font-size: 2.5rem;
+        }
+        
+        .section-content {
+            padding: 30px;
+        }
+        
+        .concept-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .concept-box h4 {
+            color: #1a1a2e;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .code-block {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .code-block .comment {
+            color: #6a9955;
+        }
+        
+        .code-block .keyword {
+            color: #569cd6;
+        }
+        
+        .code-block .function {
+            color: #dcdcaa;
+        }
+        
+        .code-block .string {
+            color: #ce9178;
+        }
+        
+        .code-block .number {
+            color: #b5cea8;
+        }
+        
+        .output-block {
+            background: #2d2d2d;
+            color: #4ec9b0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: 'Consolas', monospace;
+            border-left: 4px solid #4ec9b0;
+        }
+        
+        .output-block::before {
+            content: "OUTPUT:";
+            display: block;
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95rem;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .comparison-table th {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        
+        .comparison-table tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .pros, .cons {
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .pros {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .cons {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .pros h4 {
+            color: #155724;
+        }
+        
+        .cons h4 {
+            color: #721c24;
+        }
+        
+        .pros ul, .cons ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .diagram {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .diagram-title {
+            font-weight: bold;
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        
+        .diagram pre {
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            text-align: left;
+            display: inline-block;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%);
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .highlight-box h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .use-case {
+            background: #e3f2fd;
+            border-left: 5px solid #2196f3;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 0 10px 10px 0;
+        }
+        
+        .use-case h4 {
+            color: #1565c0;
+            margin-bottom: 10px;
+        }
+        
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+        
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        
+        .timeline-marker {
+            width: 40px;
+            height: 40px;
+            background: #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        
+        .timeline-content {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 10px;
+            flex-grow: 1;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin: 5px 5px 5px 0;
+        }
+        
+        .badge-thread {
+            background: #f5576c;
+            color: #fff;
+        }
+        
+        .badge-executor {
+            background: #4facfe;
+            color: #fff;
+        }
+        
+        .badge-async {
+            background: #43e97b;
+            color: #fff;
+        }
+        
+        .real-world {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        
+        .real-world h3 {
+            margin-bottom: 20px;
+        }
+        
+        .real-world .code-block {
+            background: rgba(0,0,0,0.3);
+        }
+        
+        footer {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .summary-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .summary-card h4 {
+            margin: 15px 0 10px;
+        }
+        
+        .summary-card .icon {
+            font-size: 3rem;
+        }
+        
+        @media (max-width: 768px) {
+            .pros-cons, .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .section-header h2 {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐍 Python Concurrency Guide</h1>
+            <p>Understanding Threads, Executors, and Async/Await</p>
+        </header>
+        
+        <div class="content">
+            <!-- Introduction -->
+            <div class="intro-box">
+                <h2>Why Do We Need Concurrency?</h2>
+                <p>Imagine you're making 3 API calls, each taking 2 seconds:</p>
+                
+                <div class="analogy">
+                    <div class="analogy-title">🍳 Restaurant Analogy</div>
+                    <p><strong>Without Concurrency (Sequential):</strong> One chef cooks dish 1, then dish 2, then dish 3 = <strong>6 minutes total</strong></p>
+                    <p><strong>With Concurrency (Parallel):</strong> Three chefs cook all dishes at the same time = <strong>2 minutes total</strong></p>
+                </div>
+                
+                <div class="diagram">
+                    <div class="diagram-title">Sequential vs Concurrent Execution</div>
+                    <pre>
+<strong>SEQUENTIAL (No Concurrency)</strong>
+Time:  0s      2s      4s      6s
+       |-------|-------|-------|
+       [ API 1 ][ API 2 ][ API 3 ]
+       Total: 6 seconds
+
+<strong>CONCURRENT (With Threads/Async)</strong>
+Time:  0s      2s
+       |-------|
+       [ API 1 ]
+       [ API 2 ]
+       [ API 3 ]
+       Total: 2 seconds
+                    </pre>
+                </div>
+            </div>
+
+            <!-- Section 1: Threads -->
+            <section>
+                <div class="section-header thread">
+                    <span class="section-icon">🧵</span>
+                    <h2>1. Threads (Low-Level)</h2>
+                </div>
+                <div class="section-content">
+                    <p>A <strong>thread</strong> is the smallest unit of execution within a process. Think of it as a worker that can run code independently.</p>
+                    
+                    <div class="concept-box">
+                        <h4>📖 What is a Thread?</h4>
+                        <ul>
+                            <li>A thread runs inside a process (your Python program)</li>
+                            <li>Multiple threads share the same memory space</li>
+                            <li>Each thread can execute code independently</li>
+                            <li>Python's <code>threading</code> module provides thread support</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="diagram">
+                        <div class="diagram-title">Process vs Thread</div>
+                        <pre>
+┌─────────────────────────────────────────┐
+│           PROCESS (Your Python App)      │
+│  ┌─────────────────────────────────────┐ │
+│  │         SHARED MEMORY               │ │
+│  │   (variables, data structures)      │ │
+│  └─────────────────────────────────────┘ │
+│                                          │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐    │
+│  │ Thread 1│ │ Thread 2│ │ Thread 3│    │
+│  │ (Main)  │ │ (API 1) │ │ (API 2) │    │
+│  └─────────┘ └─────────┘ └─────────┘    │
+└─────────────────────────────────────────┘
+                        </pre>
+                    </div>
+
+                    <h3>Basic Thread Example</h3>
+                    <div class="code-block">
+<span class="keyword">import</span> threading
+<span class="keyword">import</span> time
+
+<span class="comment"># This function will run in a separate thread</span>
+<span class="keyword">def</span> <span class="function">fetch_data</span>(name, seconds):
+    <span class="function">print</span>(<span class="string">f"</span>{name}<span class="string">: Starting..."</span>)
+    time.<span class="function">sleep</span>(seconds)  <span class="comment"># Simulates API call</span>
+    <span class="function">print</span>(<span class="string">f"</span>{name}<span class="string">: Done after </span>{seconds}<span class="string">s"</span>)
+    <span class="keyword">return</span> <span class="string">f"Result from </span>{name}<span class="string">"</span>
+
+<span class="comment"># Create threads</span>
+thread1 = threading.<span class="function">Thread</span>(target=fetch_data, args=(<span class="string">"RTC"</span>, <span class="number">2</span>))
+thread2 = threading.<span class="function">Thread</span>(target=fetch_data, args=(<span class="string">"JIRA"</span>, <span class="number">3</span>))
+thread3 = threading.<span class="function">Thread</span>(target=fetch_data, args=(<span class="string">"Azure"</span>, <span class="number">1</span>))
+
+<span class="comment"># Start all threads (they run in parallel)</span>
+thread1.<span class="function">start</span>()
+thread2.<span class="function">start</span>()
+thread3.<span class="function">start</span>()
+
+<span class="comment"># Wait for all threads to complete</span>
+thread1.<span class="function">join</span>()
+thread2.<span class="function">join</span>()
+thread3.<span class="function">join</span>()
+
+<span class="function">print</span>(<span class="string">"All done!"</span>)
+                    </div>
+                    
+                    <div class="output-block">
+RTC: Starting...
+JIRA: Starting...
+Azure: Starting...
+Azure: Done after 1s
+RTC: Done after 2s
+JIRA: Done after 3s
+All done!
+                    </div>
+
+                    <div class="highlight-box">
+                        <h4>⚠️ Problem: How to Get Return Values?</h4>
+                        <p>Notice that <code>fetch_data</code> returns a value, but we can't easily get it! Threads don't have a built-in way to return values. You need workarounds like global variables or queues.</p>
+                    </div>
+
+                    <h3>Getting Return Values (The Hard Way)</h3>
+                    <div class="code-block">
+<span class="keyword">import</span> threading
+
+results = {}  <span class="comment"># Shared dictionary to store results</span>
+
+<span class="keyword">def</span> <span class="function">fetch_data</span>(name, seconds):
+    time.<span class="function">sleep</span>(seconds)
+    results[name] = <span class="string">f"Result from </span>{name}<span class="string">"</span>  <span class="comment"># Store in shared dict</span>
+
+threads = []
+<span class="keyword">for</span> name, sec <span class="keyword">in</span> [(<span class="string">"RTC"</span>, <span class="number">2</span>), (<span class="string">"JIRA"</span>, <span class="number">3</span>)]:
+    t = threading.<span class="function">Thread</span>(target=fetch_data, args=(name, sec))
+    threads.<span class="function">append</span>(t)
+    t.<span class="function">start</span>()
+
+<span class="keyword">for</span> t <span class="keyword">in</span> threads:
+    t.<span class="function">join</span>()
+
+<span class="function">print</span>(results)  <span class="comment"># {'RTC': 'Result from RTC', 'JIRA': 'Result from JIRA'}</span>
+                    </div>
+
+                    <div class="pros-cons">
+                        <div class="pros">
+                            <h4>✅ Pros</h4>
+                            <ul>
+                                <li>Full control over thread lifecycle</li>
+                                <li>Good for long-running background tasks</li>
+                                <li>Can be used for any concurrent task</li>
+                            </ul>
+                        </div>
+                        <div class="cons">
+                            <h4>❌ Cons</h4>
+                            <ul>
+                                <li>Manual thread management</li>
+                                <li>No easy way to get return values</li>
+                                <li>Risk of race conditions</li>
+                                <li>Need to handle thread cleanup</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Executors -->
+            <section>
+                <div class="section-header executor">
+                    <span class="section-icon">⚡</span>
+                    <h2>2. Executors & Futures (High-Level)</h2>
+                </div>
+                <div class="section-content">
+                    <p><strong>Executors</strong> are a higher-level abstraction that manage threads for you. They solve the problems of raw threads!</p>
+                    
+                    <div class="concept-box">
+                        <h4>📖 What is an Executor?</h4>
+                        <ul>
+                            <li><strong>ThreadPoolExecutor</strong>: Manages a pool of reusable threads</li>
+                            <li><strong>Future</strong>: A placeholder for a result that will be available later</li>
+                            <li>Automatically handles thread creation and cleanup</li>
+                            <li>Easy way to get return values via <code>.result()</code></li>
+                        </ul>
+                    </div>
+
+                    <div class="diagram">
+                        <div class="diagram-title">How Executor Works</div>
+                        <pre>
+     YOUR CODE                    EXECUTOR                    THREADS
+         │                            │                          │
+         │  submit(func, args)        │                          │
+         │ ─────────────────────────► │                          │
+         │                            │  assigns to thread       │
+         │  ◄─── Future (receipt)     │ ────────────────────────►│
+         │                            │                          │ runs func()
+         │                            │                          │
+         │  future.result()           │                          │
+         │ ─────────────────────────► │  ◄─────────────────────  │ returns value
+         │  ◄─── actual result        │                          │
+         │                            │                          │
+                        </pre>
+                    </div>
+
+                    <div class="analogy">
+                        <div class="analogy-title">🎫 Future = Restaurant Receipt</div>
+                        <p><strong>You order food</strong> → You get a receipt (Future)</p>
+                        <p><strong>Kitchen is cooking</strong> → Receipt exists, food not ready (<code>future.running()</code>)</p>
+                        <p><strong>Food is ready</strong> → Exchange receipt for food (<code>future.result()</code>)</p>
+                    </div>
+
+                    <h3>Basic Executor Example</h3>
+                    <div class="code-block">
+<span class="keyword">from</span> concurrent.futures <span class="keyword">import</span> ThreadPoolExecutor
+<span class="keyword">import</span> time
+
+<span class="keyword">def</span> <span class="function">fetch_data</span>(name, seconds):
+    <span class="function">print</span>(<span class="string">f"</span>{name}<span class="string">: Starting..."</span>)
+    time.<span class="function">sleep</span>(seconds)
+    <span class="keyword">return</span> <span class="string">f"Result from </span>{name}<span class="string">"</span>  <span class="comment"># Can return values easily!</span>
+
+<span class="comment"># Create executor with 3 worker threads</span>
+<span class="keyword">with</span> <span class="function">ThreadPoolExecutor</span>(max_workers=<span class="number">3</span>) <span class="keyword">as</span> executor:
+    <span class="comment"># Submit tasks - returns Future objects immediately</span>
+    future1 = executor.<span class="function">submit</span>(fetch_data, <span class="string">"RTC"</span>, <span class="number">2</span>)
+    future2 = executor.<span class="function">submit</span>(fetch_data, <span class="string">"JIRA"</span>, <span class="number">3</span>)
+    future3 = executor.<span class="function">submit</span>(fetch_data, <span class="string">"Azure"</span>, <span class="number">1</span>)
+    
+    <span class="comment"># All 3 are running in parallel right now!</span>
+    <span class="function">print</span>(<span class="string">"Tasks submitted, doing other work..."</span>)
+    
+    <span class="comment"># Get results (blocks until ready)</span>
+    <span class="function">print</span>(future1.<span class="function">result</span>())  <span class="comment"># "Result from RTC"</span>
+    <span class="function">print</span>(future2.<span class="function">result</span>())  <span class="comment"># "Result from JIRA"</span>
+    <span class="function">print</span>(future3.<span class="function">result</span>())  <span class="comment"># "Result from Azure"</span>
+                    </div>
+
+                    <div class="output-block">
+Tasks submitted, doing other work...
+RTC: Starting...
+JIRA: Starting...
+Azure: Starting...
+Result from RTC
+Result from JIRA
+Result from Azure
+                    </div>
+
+                    <h3>Future Object Methods</h3>
+                    <div class="code-block">
+future = executor.<span class="function">submit</span>(some_function, arg1, arg2)
+
+<span class="comment"># Check status</span>
+future.<span class="function">done</span>()       <span class="comment"># True if completed (success or failure)</span>
+future.<span class="function">running</span>()    <span class="comment"># True if currently executing</span>
+future.<span class="function">cancelled</span>()  <span class="comment"># True if was cancelled</span>
+
+<span class="comment"># Get result</span>
+future.<span class="function">result</span>()              <span class="comment"># Blocks until done, returns value</span>
+future.<span class="function">result</span>(timeout=<span class="number">10</span>)    <span class="comment"># Wait max 10 seconds</span>
+
+<span class="comment"># Cancel (only works if not started yet)</span>
+future.<span class="function">cancel</span>()
+                    </div>
+
+                    <h3>Using as_completed() - Process Results As They Finish</h3>
+                    <div class="code-block">
+<span class="keyword">from</span> concurrent.futures <span class="keyword">import</span> ThreadPoolExecutor, as_completed
+
+<span class="keyword">def</span> <span class="function">fetch_data</span>(name, seconds):
+    time.<span class="function">sleep</span>(seconds)
+    <span class="keyword">return</span> {<span class="string">"name"</span>: name, <span class="string">"data"</span>: <span class="string">f"Result from </span>{name}<span class="string">"</span>}
+
+<span class="keyword">with</span> <span class="function">ThreadPoolExecutor</span>() <span class="keyword">as</span> executor:
+    <span class="comment"># Map futures to their metadata</span>
+    future_to_name = {
+        executor.<span class="function">submit</span>(fetch_data, <span class="string">"RTC"</span>, <span class="number">3</span>): <span class="string">"RTC"</span>,
+        executor.<span class="function">submit</span>(fetch_data, <span class="string">"JIRA"</span>, <span class="number">1</span>): <span class="string">"JIRA"</span>,
+        executor.<span class="function">submit</span>(fetch_data, <span class="string">"Azure"</span>, <span class="number">2</span>): <span class="string">"Azure"</span>,
+    }
+    
+    <span class="comment"># Process results as they complete (fastest first!)</span>
+    <span class="keyword">for</span> future <span class="keyword">in</span> <span class="function">as_completed</span>(future_to_name):
+        name = future_to_name[future]
+        result = future.<span class="function">result</span>()
+        <span class="function">print</span>(<span class="string">f"</span>{name}<span class="string"> finished: </span>{result}<span class="string">"</span>)
+                    </div>
+
+                    <div class="output-block">
+JIRA finished: {'name': 'JIRA', 'data': 'Result from JIRA'}     # 1 second
+Azure finished: {'name': 'Azure', 'data': 'Result from Azure'}  # 2 seconds
+RTC finished: {'name': 'RTC', 'data': 'Result from RTC'}        # 3 seconds
+                    </div>
+
+                    <div class="highlight-box">
+                        <h4>💡 Why as_completed() Matters</h4>
+                        <p><strong>Without as_completed():</strong> You wait for results in submission order. If first task takes 10s and second takes 1s, you wait 10s before seeing any result.</p>
+                        <p><strong>With as_completed():</strong> You get results as soon as they're ready. The 1s task result comes first!</p>
+                    </div>
+
+                    <h3>Handling Timeouts and Errors</h3>
+                    <div class="code-block">
+<span class="keyword">from</span> concurrent.futures <span class="keyword">import</span> ThreadPoolExecutor, as_completed, TimeoutError
+
+<span class="keyword">with</span> <span class="function">ThreadPoolExecutor</span>() <span class="keyword">as</span> executor:
+    futures = {
+        executor.<span class="function">submit</span>(fetch_data, <span class="string">"RTC"</span>, <span class="number">2</span>): <span class="string">"RTC"</span>,
+        executor.<span class="function">submit</span>(fetch_data, <span class="string">"JIRA"</span>, <span class="number">100</span>): <span class="string">"JIRA"</span>,  <span class="comment"># Very slow!</span>
+    }
+    
+    <span class="keyword">for</span> future <span class="keyword">in</span> <span class="function">as_completed</span>(futures, timeout=<span class="number">30</span>):
+        name = futures[future]
+        <span class="keyword">try</span>:
+            result = future.<span class="function">result</span>(timeout=<span class="number">5</span>)
+            <span class="function">print</span>(<span class="string">f"</span>{name}<span class="string">: </span>{result}<span class="string">"</span>)
+        <span class="keyword">except</span> TimeoutError:
+            <span class="function">print</span>(<span class="string">f"</span>{name}<span class="string">: Timed out!"</span>)
+        <span class="keyword">except</span> Exception <span class="keyword">as</span> e:
+            <span class="function">print</span>(<span class="string">f"</span>{name}<span class="string">: Error - </span>{e}<span class="string">"</span>)
+                    </div>
+
+                    <div class="pros-cons">
+                        <div class="pros">
+                            <h4>✅ Pros</h4>
+                            <ul>
+                                <li>Easy to get return values</li>
+                                <li>Automatic thread management</li>
+                                <li>Built-in timeout support</li>
+                                <li>Context manager handles cleanup</li>
+                                <li>Thread pool reuses threads efficiently</li>
+                            </ul>
+                        </div>
+                        <div class="cons">
+                            <h4>❌ Cons</h4>
+                            <ul>
+                                <li>Still uses threads (GIL limitation)</li>
+                                <li>Not ideal for CPU-bound tasks</li>
+                                <li>Slightly more overhead than raw threads</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Async -->
+            <section>
+                <div class="section-header async">
+                    <span class="section-icon">🔄</span>
+                    <h2>3. Async/Await (Single-Threaded Concurrency)</h2>
+                </div>
+                <div class="section-content">
+                    <p><strong>Async</strong> is a completely different approach - it achieves concurrency with a <strong>single thread</strong> using cooperative multitasking.</p>
+                    
+                    <div class="concept-box">
+                        <h4>📖 What is Async?</h4>
+                        <ul>
+                            <li>Uses a single thread with an <strong>event loop</strong></li>
+                            <li>Tasks voluntarily <strong>yield</strong> control when waiting (I/O)</li>
+                            <li><code>async def</code> defines a coroutine (async function)</li>
+                            <li><code>await</code> pauses execution and lets other tasks run</li>
+                            <li>Best for I/O-bound tasks (network, file, database)</li>
+                        </ul>
+                    </div>
+
+                    <div class="analogy">
+                        <div class="analogy-title">👨‍🍳 Single Chef, Multiple Dishes</div>
+                        <p><strong>Threads:</strong> 3 chefs, each cooking one dish</p>
+                        <p><strong>Async:</strong> 1 chef cooking 3 dishes - while dish 1 is in the oven (waiting), chef works on dish 2. When dish 2 is boiling (waiting), chef checks dish 1.</p>
+                        <p>The chef never stands idle - always doing something useful!</p>
+                    </div>
+
+                    <div class="diagram">
+                        <div class="diagram-title">How Async Event Loop Works</div>
+                        <pre>
+     EVENT LOOP (Single Thread)
+     ═══════════════════════════════════════════════════════
+     
+     Time ──────────────────────────────────────────────────►
+     
+     Task A: [Run]──await──[Run]──await──[Run]──[Done]
+                    │              │
+                    ▼              ▼
+     Task B:       [Run]──await──[Run]──[Done]
+                          │
+                          ▼
+     Task C:             [Run]──────────[Done]
+     
+     ═══════════════════════════════════════════════════════
+     Only ONE task runs at any moment, but we switch between
+     them during "await" (when they're waiting for I/O)
+                        </pre>
+                    </div>
+
+                    <h3>Basic Async Example</h3>
+                    <div class="code-block">
+<span class="keyword">import</span> asyncio
+
+<span class="comment"># Define an async function (coroutine)</span>
+<span class="keyword">async def</span> <span class="function">fetch_data</span>(name, seconds):
+    <span class="function">print</span>(<span class="string">f"</span>{name}<span class="string">: Starting..."</span>)
+    <span class="keyword">await</span> asyncio.<span class="function">sleep</span>(seconds)  <span class="comment"># Non-blocking sleep</span>
+    <span class="function">print</span>(<span class="string">f"</span>{name}<span class="string">: Done!"</span>)
+    <span class="keyword">return</span> <span class="string">f"Result from </span>{name}<span class="string">"</span>
+
+<span class="comment"># Main async function</span>
+<span class="keyword">async def</span> <span class="function">main</span>():
+    <span class="comment"># Create tasks (they start running)</span>
+    task1 = asyncio.<span class="function">create_task</span>(<span class="function">fetch_data</span>(<span class="string">"RTC"</span>, <span class="number">2</span>))
+    task2 = asyncio.<span class="function">create_task</span>(<span class="function">fetch_data</span>(<span class="string">"JIRA"</span>, <span class="number">3</span>))
+    task3 = asyncio.<span class="function">create_task</span>(<span class="function">fetch_data</span>(<span class="string">"Azure"</span>, <span class="number">1</span>))
+    
+    <span class="comment"># Wait for all tasks to complete</span>
+    results = <span class="keyword">await</span> asyncio.<span class="function">gather</span>(task1, task2, task3)
+    <span class="function">print</span>(results)
+
+<span class="comment"># Run the event loop</span>
+asyncio.<span class="function">run</span>(<span class="function">main</span>())
+                    </div>
+
+                    <div class="output-block">
+RTC: Starting...
+JIRA: Starting...
+Azure: Starting...
+Azure: Done!
+RTC: Done!
+JIRA: Done!
+['Result from RTC', 'Result from JIRA', 'Result from Azure']
+                    </div>
+
+                    <h3>Key Async Concepts</h3>
+                    <div class="code-block">
+<span class="comment"># 1. async def - Defines a coroutine</span>
+<span class="keyword">async def</span> <span class="function">my_coroutine</span>():
+    <span class="keyword">return</span> <span class="string">"Hello"</span>
+
+<span class="comment"># 2. await - Pauses and waits for result</span>
+result = <span class="keyword">await</span> <span class="function">my_coroutine</span>()
+
+<span class="comment"># 3. asyncio.create_task() - Schedule coroutine to run</span>
+task = asyncio.<span class="function">create_task</span>(<span class="function">my_coroutine</span>())
+
+<span class="comment"># 4. asyncio.gather() - Run multiple coroutines concurrently</span>
+results = <span class="keyword">await</span> asyncio.<span class="function">gather</span>(coro1, coro2, coro3)
+
+<span class="comment"># 5. asyncio.run() - Start the event loop</span>
+asyncio.<span class="function">run</span>(<span class="function">main</span>())
+                    </div>
+
+                    <h3>Real Async HTTP Example (with aiohttp)</h3>
+                    <div class="code-block">
+<span class="keyword">import</span> asyncio
+<span class="keyword">import</span> aiohttp  <span class="comment"># pip install aiohttp</span>
+
+<span class="keyword">async def</span> <span class="function">fetch_url</span>(session, url):
+    <span class="keyword">async with</span> session.<span class="function">get</span>(url) <span class="keyword">as</span> response:
+        <span class="keyword">return await</span> response.<span class="function">json</span>()
+
+<span class="keyword">async def</span> <span class="function">main</span>():
+    urls = [
+        <span class="string">"https://api.example.com/rtc/123"</span>,
+        <span class="string">"https://api.example.com/jira/456"</span>,
+        <span class="string">"https://api.example.com/azure/789"</span>,
+    ]
+    
+    <span class="keyword">async with</span> aiohttp.<span class="function">ClientSession</span>() <span class="keyword">as</span> session:
+        tasks = [<span class="function">fetch_url</span>(session, url) <span class="keyword">for</span> url <span class="keyword">in</span> urls]
+        results = <span class="keyword">await</span> asyncio.<span class="function">gather</span>(*tasks)
+        <span class="function">print</span>(results)
+
+asyncio.<span class="function">run</span>(<span class="function">main</span>())
+                    </div>
+
+                    <div class="highlight-box">
+                        <h4>⚠️ Important: Async Requires Async Libraries</h4>
+                        <p><code>requests.get()</code> is <strong>blocking</strong> - it won't work with async!</p>
+                        <p>You need async-compatible libraries like <code>aiohttp</code>, <code>httpx</code>, or <code>asyncpg</code>.</p>
+                    </div>
+
+                    <div class="pros-cons">
+                        <div class="pros">
+                            <h4>✅ Pros</h4>
+                            <ul>
+                                <li>Very efficient for I/O-bound tasks</li>
+                                <li>No thread overhead</li>
+                                <li>No race conditions (single thread)</li>
+                                <li>Can handle thousands of concurrent connections</li>
+                                <li>Lower memory usage than threads</li>
+                            </ul>
+                        </div>
+                        <div class="cons">
+                            <h4>❌ Cons</h4>
+                            <ul>
+                                <li>Requires async-compatible libraries</li>
+                                <li>Can't use regular blocking code</li>
+                                <li>"Viral" - async spreads through codebase</li>
+                                <li>Steeper learning curve</li>
+                                <li>Not good for CPU-bound tasks</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comparison -->
+            <section>
+                <div class="section-header" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+                    <span class="section-icon">📊</span>
+                    <h2>Comparison: When to Use What?</h2>
+                </div>
+                <div class="section-content">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th><span class="badge badge-thread">Threads</span></th>
+                                <th><span class="badge badge-executor">Executor</span></th>
+                                <th><span class="badge badge-async">Async</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Complexity</strong></td>
+                                <td>High</td>
+                                <td>Medium</td>
+                                <td>Medium-High</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Return Values</strong></td>
+                                <td>Hard (manual)</td>
+                                <td>Easy (.result())</td>
+                                <td>Easy (await)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Memory Usage</strong></td>
+                                <td>High (per thread)</td>
+                                <td>Medium (pooled)</td>
+                                <td>Low</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Max Concurrency</strong></td>
+                                <td>~1000 threads</td>
+                                <td>~1000 threads</td>
+                                <td>~100,000+ tasks</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Works with requests lib</strong></td>
+                                <td>✅ Yes</td>
+                                <td>✅ Yes</td>
+                                <td>❌ No (need aiohttp)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Best For</strong></td>
+                                <td>Background tasks</td>
+                                <td>Parallel API calls</td>
+                                <td>High-concurrency I/O</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div class="icon">🧵</div>
+                            <h4>Use Threads When</h4>
+                            <p>You need fine-grained control or long-running background tasks</p>
+                        </div>
+                        <div class="summary-card">
+                            <div class="icon">⚡</div>
+                            <h4>Use Executor When</h4>
+                            <p>You want easy parallel execution with return values (like your API calls!)</p>
+                        </div>
+                        <div class="summary-card">
+                            <div class="icon">🔄</div>
+                            <h4>Use Async When</h4>
+                            <p>You need high concurrency and can use async libraries</p>
+                        </div>
+                    </div>
+
+                    <div class="use-case">
+                        <h4>🎯 Your Use Case: getDefectLinks()</h4>
+                        <p><strong>Best choice: ThreadPoolExecutor</strong></p>
+                        <ul>
+                            <li>You're using <code>requests</code> library (blocking)</li>
+                            <li>Only 3 concurrent API calls</li>
+                            <li>Need return values easily</li>
+                            <li>Executor handles everything cleanly</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Your Real Code -->
+            <div class="real-world">
+                <h3>🔧 Your Code Explained</h3>
+                <p>Here's what happens in your <code>getDefectLinks()</code> function:</p>
+                <div class="code-block">
+<span class="keyword">from</span> concurrent.futures <span class="keyword">import</span> ThreadPoolExecutor, as_completed
+
+<span class="keyword">with</span> <span class="function">ThreadPoolExecutor</span>() <span class="keyword">as</span> executor:
+    future_to_instance = {}
+    
+    <span class="comment"># Step 1: Submit all API calls (they start running in parallel)</span>
+    <span class="keyword">for</span> instance <span class="keyword">in</span> instances:
+        <span class="keyword">if</span> tool_type == <span class="string">'rtc'</span>:
+            future = executor.<span class="function">submit</span>(get_rtc_link, defect_id, instance, division)
+        <span class="keyword">elif</span> tool_type == <span class="string">'jira'</span>:
+            future = executor.<span class="function">submit</span>(get_jira_link, defect_id, instance, division)
+        <span class="comment"># ...</span>
+        future_to_instance[future] = instance  <span class="comment"># Map future → instance</span>
+    
+    <span class="comment"># Step 2: Collect results as they complete</span>
+    <span class="keyword">for</span> future <span class="keyword">in</span> <span class="function">as_completed</span>(future_to_instance):
+        instance = future_to_instance[future]  <span class="comment"># Get correct instance</span>
+        <span class="keyword">try</span>:
+            result = future.<span class="function">result</span>()  <span class="comment"># Get API response</span>
+        <span class="keyword">except</span> TimeoutError:
+            <span class="keyword">continue</span>
+        
+        <span class="keyword">if</span> result.get(<span class="string">'link'</span>):
+            links.<span class="function">append</span>({
+                <span class="string">"type"</span>: instance[<span class="string">'tool_type'</span>],
+                <span class="string">"instance_id"</span>: instance[<span class="string">'instance_id'</span>],
+                <span class="string">"project_instance_id"</span>: instance[<span class="string">'project_instance_id'</span>],
+                <span class="comment"># ...</span>
+            })
+                </div>
+            </div>
+
+        </div>
+        
+        <footer>
+            <p>Python Concurrency Guide | Created for understanding Threads, Executors & Async</p>
+        </footer>
+    </div>
+</body>
+</html>
