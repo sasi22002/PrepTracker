@@ -65,3 +65,27 @@ def large_generator():
 
 for i, pass_num, elem in itertools.islice(stepping_cycle(large_generator(), step=1000), 3):
     print(i, pass_num, elem)
+
+
+#helloArray - > 'h1e1ll2o1a1rr2a1y1'
+
+x = 'helloArray'
+res = ''
+last_char = ''
+length = len(x)
+for i,v in enumerate(x):
+    c = 1
+    if str(v) == str(last_char):
+        c= c +1
+        res = res+f'{v}'+str(c)
+    else:  
+        if i < length -1:
+            if x[i] != x[i+1] :
+                res = res+f'{v}'+str(c)
+            else:
+                res = res+f'{v}'
+        
+    last_char = v
+    
+print(res)
+        
